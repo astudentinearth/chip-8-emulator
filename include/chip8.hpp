@@ -20,6 +20,7 @@ class Chip8Display {
   static unique_ptr<Chip8Display> create() {
     return make_unique<Chip8Display>();
   }
+  void clear();
 
  private:
   uint8_t m_framebuffer[CHIP8_DISPLAY_HEIGHT][CHIP8_DISPLAY_WIDTH];
@@ -55,13 +56,17 @@ class Chip8Emulator {
   explicit Chip8Emulator() = default;
   enum : int { MemorySize = 4096, ProgramStart = 0x200, MaxProgramSize = ProgramStart - MemorySize };
 
-  static unique_ptr<Chip8Emulator> create(Chip8Display* display) {
-    auto emulator = make_unique<Chip8Emulator>();
-    emulator->m_display = display;
-    return emulator;
-  }
+  static unique_ptr<Chip8Emulator> create(Chip8Display* display);
+
 
   bool loadProgram(const char* program, size_t size);
+  uint16_t fetch(const uint16_t addr) const;
+  uint16_t fetchNext();
+  uint16_t getIsp() const;
+
+  /** Executes passed instruction immediately. */
+  bool exec(uint16_t opcode);
+  void dumpState() const;
 
  private:
   Registers m_reg{};
@@ -70,7 +75,9 @@ class Chip8Emulator {
   stack<uint16_t> m_stack{};
 
   /** address space */
-  uint8_t memory[MemorySize]{};
+  uint8_t memory[MemorySize / 2]{};
+
+  size_t m_size;
 
   /** program counter */
   uint16_t isp{ProgramStart};

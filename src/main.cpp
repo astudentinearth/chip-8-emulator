@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -13,7 +14,7 @@ int main(int argc, const char** argv) {
     return 1;
   }
 
-  string filename(argv[1]);
+  const string filename(argv[1]);
   ifstream programFile(filename, ios_base::binary);
 
   if (!programFile.good()) {
@@ -21,7 +22,7 @@ int main(int argc, const char** argv) {
     return 1;
   }
 
-  auto size = filesystem::file_size(filename);
+  const auto size = filesystem::file_size(filename);
 
   if (size > Chip8Emulator::MaxProgramSize) {
     cerr << "Error: this file won't fit into memory (" << size << " bytes)"
@@ -33,13 +34,30 @@ int main(int argc, const char** argv) {
   auto buffer = make_unique<char[]>(size);
   programFile.read(buffer.get(), size);
 
-  auto display = Chip8Display::create();
-  auto emulator = Chip8Emulator::create(display.get());
+  const auto display = Chip8Display::create();
+  const auto emulator = Chip8Emulator::create(display.get());
   if (emulator->loadProgram(buffer.get(), size)) {
     cout << "Loaded program successfully." << endl;
   } else {
     cerr << "Unexpected error: failed to load program." << endl;
     return 1;
+  }
+
+  while (true) {
+    string input{};
+    cout << "> ";
+    if (!(cin >> input)) break;
+    if (input == "next") {
+      emulator->fetchNext();
+      printf("isp: 0x%.2X | opcode: 0x%.2X\n", emulator->getIsp(),
+             emulator->fetch(emulator->getIsp()));
+    }
+    if (input == "isp") {
+      printf("isp: 0x%.2X | opcode: 0x%.2X\n", emulator->getIsp(),
+             emulator->fetch(emulator->getIsp()));
+    }
+    if(input == "reg") emulator->dumpState();
+    if (input == "exit") break;
   }
 
   return 0;
