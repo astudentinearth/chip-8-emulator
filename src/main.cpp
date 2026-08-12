@@ -8,6 +8,11 @@
 using namespace std;
 using namespace chip8;
 
+void printIsp(const Chip8Emulator* emulator) {
+  printf("isp: 0x%.2X | opcode: 0x%.2X\n", emulator->getIsp(),
+         emulator->fetch(emulator->getIsp()));
+}
+
 int main(int argc, const char** argv) {
   if (argc < 2) {
     cerr << "Error: no filename provided." << endl;
@@ -49,14 +54,16 @@ int main(int argc, const char** argv) {
     if (!(cin >> input)) break;
     if (input == "next") {
       emulator->fetchNext();
-      printf("isp: 0x%.2X | opcode: 0x%.2X\n", emulator->getIsp(),
-             emulator->fetch(emulator->getIsp()));
+      printIsp(emulator.get());
     }
     if (input == "isp") {
-      printf("isp: 0x%.2X | opcode: 0x%.2X\n", emulator->getIsp(),
-             emulator->fetch(emulator->getIsp()));
+      printIsp(emulator.get());
     }
-    if(input == "reg") emulator->dumpState();
+    if (input == "reg") emulator->dumpState();
+    if (input == "exec") {
+      emulator->exec();
+      printIsp(emulator.get());
+    }
     if (input == "exit") break;
   }
 
