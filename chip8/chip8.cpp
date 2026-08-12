@@ -1,10 +1,9 @@
 #include "chip8.hpp"
-#include <iostream>;
+
+#include <iostream>
 
 using namespace std;
 
 namespace chip8 {
-    void hello() {
-        cout << "hello world" << endl;
-    }
-}
+void hello() { cout << "hello world" << endl; }
+}  // namespace chip8
