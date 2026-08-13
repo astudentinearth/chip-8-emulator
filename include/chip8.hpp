@@ -5,13 +5,36 @@
 #include <cstdint>
 #include <memory>
 #include <stack>
-constexpr int CHIP8_DISPLAY_WIDTH = 8;   // bytes, 64px
-constexpr int CHIP8_DISPLAY_HEIGHT = 4;  // bytes, 32px
 
 using namespace std;
 
 namespace chip8 {
 void hello();
+
+constexpr int CHIP8_DISPLAY_WIDTH = 8;   // bytes, 64px
+constexpr int CHIP8_DISPLAY_HEIGHT = 4;  // bytes, 32px
+constexpr int CHIP8_FONT_SET_SIZE = 80;  // bytes
+
+const uint8_t fontset[CHIP8_FONT_SET_SIZE]{
+    0xf0, 0x90, 0x90, 0x90, 0xf0,  // 0
+    0x20, 0x60, 0x20, 0x20, 0x70,  // 1
+    0xf0, 0x10, 0xf0, 0x80, 0xf0,  // 2
+    0xf0, 0x10, 0xf0, 0x10, 0xf0,  // 3
+    0x90, 0x90, 0xf0, 0x10, 0x10,  // 4
+    0xf0, 0x80, 0xf0, 0x10, 0xf0,  // 5
+    0xf0, 0x80, 0xf0, 0x90, 0xf0,  // 6
+    0xf0, 0x10, 0x20, 0x40, 0x40,  // 7
+    0xf0, 0x90, 0xf0, 0x90, 0xf0,  // 8
+    0xf0, 0x90, 0xf0, 0x10, 0xf0,  // 9
+    0xf0, 0x90, 0xf0, 0x90, 0x90,  // A
+    0xe0, 0x90, 0xe0, 0x90, 0xe0,  // B
+    0xf0, 0x80, 0x80, 0x80, 0xf0,  // C
+    0xe0, 0x90, 0x90, 0x90, 0xe0,  // D
+    0xf0, 0x80, 0xf0, 0x80, 0xf0,  // E
+    0xf0, 0x80, 0xf0, 0x80, 0x80   // F
+};
+
+constexpr uint8_t CharGlyphOffset(uint8_t ch) { return ch * 5; }
 
 using Framebuffer = array<uint8_t, CHIP8_DISPLAY_WIDTH * CHIP8_DISPLAY_HEIGHT>;
 
@@ -61,7 +84,6 @@ struct Registers {
 
   /** carry flag */
   uint8_t vf{0};
-
 
   /** the register getkey instruction should store the key code in */
   uint16_t k{0};
@@ -136,7 +158,6 @@ constexpr uint16_t MiscOpTypeMask = 0x00FF;
 constexpr uint16_t KeyCondEqMask = 0x009E;
 constexpr uint16_t KeyCondNotEqMask = 0x00A1;
 
-
 }  // namespace op
 
 class Chip8Emulator {
@@ -168,6 +189,8 @@ class Chip8Emulator {
   void dumpState() const;
 
  private:
+  bool evalMathOp(uint16_t opcode);
+  bool evalMiscOp(uint16_t opcode);
   Registers m_reg{};
 
   /** call stack */
