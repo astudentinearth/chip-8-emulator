@@ -40,13 +40,14 @@ int main(int argc, const char** argv) {
   programFile.read(buffer.get(), size);
 
   const auto display = Chip8Display::create([](const Framebuffer& buf) {
-    for (int i = 0; i < CHIP8_DISPLAY_HEIGHT * CHIP8_DISPLAY_WIDTH; i++) {
-        auto byte = buf[i];
-        for(int i = 0; i < 8; i++) {
-            cout << (((byte << i) & 0x80) == 0 ? ' ' : '@');
-        }
-        cout << endl;
+    cout << "===============================" << endl;
+    for (int y = 0; y < CHIP8_DISPLAY_HEIGHT; y++) {
+      for (int x = 0; x < CHIP8_DISPLAY_WIDTH; x++) {
+        cout << (buf[(y * CHIP8_DISPLAY_WIDTH) + x] ? "@" : " ");
+      }
+      cout << endl;
     }
+    cout << "===============================" << endl;
   });
   const auto emulator = Chip8Emulator::create(display.get());
   if (emulator->loadProgram(buffer.get(), size)) {
@@ -68,7 +69,7 @@ int main(int argc, const char** argv) {
       printIsp(emulator.get());
     }
     if (input == "reg") emulator->dumpState();
-    if (input == "exec") {
+    if (input == "exec" || input == "e") {
       emulator->exec();
       printIsp(emulator.get());
     }

@@ -1,16 +1,13 @@
 
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 
 #include "chip8.hpp"
 #include "util.hpp"
 
 namespace chip8 {
 Chip8Display::Chip8Display(onDrawFn onDraw) { m_onDraw = onDraw; }
-
-constexpr int framebufferIdx(int x, int y) {
-  return (y * CHIP8_DISPLAY_HEIGHT) + x;
-}
 
 unique_ptr<Chip8Emulator> Chip8Emulator::create(Chip8Display* display) {
   auto emulator = make_unique<Chip8Emulator>();
@@ -25,9 +22,14 @@ void Chip8Display::clear() {
 
 void Chip8Display::redraw() const { m_onDraw(m_framebuffer); }
 bool Chip8Display::drawByte(int x, int y, uint8_t byte) {
-  auto current = m_framebuffer[framebufferIdx(x, y)];
-  m_framebuffer[framebufferIdx(x, y)] ^= byte;
-  return byte & current;  // whether we unset any bits
+    bool unset = false;
+    for(int _x = 0; _x < 8; _x++) {
+        if(((byte << _x) & 0x80) == 0) continue;
+        auto& px = m_framebuffer[x + _x + (y * CHIP8_DISPLAY_WIDTH)];
+        if(px) unset = true;
+        px ^= 1;
+    }
+    return unset;
 }
 
 bool Chip8Emulator::loadProgram(const char* program, size_t size) {
@@ -128,7 +130,7 @@ uint16_t Chip8Emulator::ret() {
 void Chip8Emulator::jmp(uint16_t addr) { isp = addr; }
 
 void Chip8Emulator::call(uint16_t addr) {
-  m_stack.push(isp + 1);
+  m_stack.push(isp + 2);
   jmp(addr);
 }
 
@@ -293,8 +295,8 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     }
 
     case op::SkipIfEqual: {
-      printf("skipping if v%d (%x) == %x? ", op::CondReg(opcode),
-             m_reg[op::CondReg(opcode)], op::CondReg(opcode));
+      printf("skipping if v%d (%d) == %d? ", op::CondReg(opcode),
+             m_reg[op::CondReg(opcode)], op::CondVal(opcode));
       if ((m_reg[op::CondReg(opcode)]) == (op::CondVal(opcode))) {
         isp += 2;
         printf("skipped. \n");
@@ -306,7 +308,7 @@ bool Chip8Emulator::eval(uint16_t opcode) {
 
     case op::SkipIfNotEqual: {
       printf("skipping if v%d (%x) != %x? ", op::CondReg(opcode),
-             m_reg[op::CondReg(opcode)], op::CondReg(opcode));
+             m_reg[op::CondReg(opcode)], op::CondVal(opcode));
 
       if ((m_reg[op::CondReg(opcode)]) != (op::CondVal(opcode))) {
         isp += 2;
@@ -375,6 +377,7 @@ bool Chip8Emulator::eval(uint16_t opcode) {
       auto h = op::DrawHeight(opcode);
       uint8_t* start = &memory[m_reg.i];
       bool unset = false;
+      printf(" drawing %d bytes x: %d, y: %d \n", h, x, y);
       for (uint16_t i = 0; i < h; i++) {
         unset |= m_display->drawByte(x, y + i, start[i]);
       }
@@ -399,6 +402,7 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     case op::Misc:
       return evalMiscOp(opcode);
   }
+  return false;
 }
 
 bool Chip8Emulator::exec() {

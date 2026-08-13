@@ -11,8 +11,8 @@ using namespace std;
 namespace chip8 {
 void hello();
 
-constexpr int CHIP8_DISPLAY_WIDTH = 8;   // bytes, 64px
-constexpr int CHIP8_DISPLAY_HEIGHT = 4;  // bytes, 32px
+constexpr int CHIP8_DISPLAY_WIDTH = 64;  
+constexpr int CHIP8_DISPLAY_HEIGHT = 32;
 constexpr int CHIP8_FONT_SET_SIZE = 80;  // bytes
 
 const uint8_t fontset[CHIP8_FONT_SET_SIZE]{
