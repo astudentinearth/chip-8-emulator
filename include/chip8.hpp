@@ -1,72 +1,91 @@
 
 #pragma once
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <stack>
-#define CHIP8_DISPLAY_WIDTH 8
-#define CHIP8_DISPLAY_HEIGHT 4
+constexpr int CHIP8_DISPLAY_WIDTH = 8;   // bytes, 64px
+constexpr int CHIP8_DISPLAY_HEIGHT = 4;  // bytes, 32px
 
 using namespace std;
 
 namespace chip8 {
 void hello();
 
+using Framebuffer = array<uint8_t, CHIP8_DISPLAY_WIDTH * CHIP8_DISPLAY_HEIGHT>;
+
 class Chip8Display {
  public:
-  typedef void (*onDrawFn)();
+  typedef void (*onDrawFn)(const Framebuffer& buf);
   explicit Chip8Display() = default;
   explicit Chip8Display(onDrawFn onDraw);
   static unique_ptr<Chip8Display> create() {
     return make_unique<Chip8Display>();
   }
+  static unique_ptr<Chip8Display> create(onDrawFn onDraw) {
+    return make_unique<Chip8Display>(onDraw);
+  }
+  void redraw() const;
   void clear();
+  bool drawByte(int x, int y, uint8_t byte);
+  const Framebuffer& getFramebuffer() const;
 
  private:
-  uint8_t m_framebuffer[CHIP8_DISPLAY_HEIGHT][CHIP8_DISPLAY_WIDTH];
-  onDrawFn m_onDraw = []() {};
+  Framebuffer m_framebuffer;
+  onDrawFn m_onDraw = [](const Framebuffer& _) {};
 };
 
 struct Registers {
-  uint8_t v0;
-  uint8_t v1;
-  uint8_t v2;
-  uint8_t v3;
-  uint8_t v4;
-  uint8_t v5;
-  uint8_t v6;
-  uint8_t v7;
-  uint8_t v8;
-  uint8_t v9;
-  uint8_t va;
-  uint8_t vb;
-  uint8_t vc;
-  uint8_t vd;
-  uint8_t ve;
+  uint8_t v0{0};
+  uint8_t v1{0};
+  uint8_t v2{0};
+  uint8_t v3{0};
+  uint8_t v4{0};
+  uint8_t v5{0};
+  uint8_t v6{0};
+  uint8_t v7{0};
+  uint8_t v8{0};
+  uint8_t v9{0};
+  uint8_t va{0};
+  uint8_t vb{0};
+  uint8_t vc{0};
+  uint8_t vd{0};
+  uint8_t ve{0};
+
+  /** delay timer */
+  uint8_t dt{0};
+
+  /** sound timer */
+  uint8_t st{0};
 
   /** carry flag */
-  uint8_t vf;
+  uint8_t vf{0};
+
+
+  /** the register getkey instruction should store the key code in */
+  uint16_t k{0};
 
   /** address register, last 4 bits unused */
   uint16_t i;
   uint8_t& operator[](uint16_t idx);
 };
 
+using Keypad = std::array<bool, 16>;
+
 namespace op {
 
-enum OpMask : uint16_t {
-  Address = 0x0FFF,
-  CondReg = 0x0F00,
-  CondVal = 0x00FF,
-  ConstSetReg = 0x0F00,
-  ConstSetVal = 0x00FF,
-  ConstAddReg = ConstSetReg,
-  ConstAddVal = ConstSetVal,
-  LeftReg = 0x0F00,
-  RightReg = 0x00F0,
-  BinOpType = 0x000F,
-  DrawHeight = 0x000F
-};
+constexpr uint16_t Address(uint16_t code) { return (code & 0x0FFF); }
+constexpr uint16_t CondReg(uint16_t code) { return (code & 0x0F00) >> 8; }
+constexpr uint16_t CondVal(uint16_t code) { return (code & 0x00FF); }
+constexpr uint16_t ConstSetReg(uint16_t code) { return (code & 0x0F00) >> 8; }
+constexpr uint16_t ConstSetVal(uint16_t code) { return (code & 0x00FF); }
+constexpr uint16_t ConstAddReg(uint16_t code) { return ConstSetReg(code); }
+constexpr uint16_t ConstAddVal(uint16_t code) { return ConstSetVal(code); }
+constexpr uint16_t LeftReg(uint16_t code) { return (code & 0x0F00) >> 8; }
+constexpr uint16_t RightReg(uint16_t code) { return (code & 0x00F0) >> 4; }
+constexpr uint16_t BinOpType(uint16_t code) { return (code & 0x000F); }
+constexpr uint16_t DrawHeight(uint16_t code) { return (code & 0x000F); }
 
 enum FixedCode : uint16_t { ClearDisplay = 0x00E0, Return = 0x00EE };
 
@@ -100,7 +119,23 @@ enum MathOpType : uint16_t {
   LeftShift = 0xE
 };
 
+enum MiscOpType : uint16_t {
+  GetDelayTimer = 0x07,
+  GetKey = 0x0A,
+  SetDelayTimer = 0x15,
+  SetSoundTimer = 0x18,
+  AddVxToI = 0x1E,
+  SetCharSprite = 0x29,
+  BCD = 0x33,
+  RegDump = 0x55,
+  RegLoad = 0x65
+};
+
 constexpr uint16_t OpClassMask = 0xF000;
+constexpr uint16_t MiscOpTypeMask = 0x00FF;
+constexpr uint16_t KeyCondEqMask = 0x009E;
+constexpr uint16_t KeyCondNotEqMask = 0x00A1;
+
 
 }  // namespace op
 
@@ -122,7 +157,7 @@ class Chip8Emulator {
   uint16_t ret();
   void call(uint16_t addr);
   void jmp(uint16_t addr);
-  uint8_t& getReg(uint8_t idx);
+  void setKey(uint8_t key, bool state);
 
   /** Executes passed instruction immediately.
    * @return true if execution altered the program counter */
@@ -139,12 +174,13 @@ class Chip8Emulator {
   stack<uint16_t> m_stack{};
 
   /** address space */
-  uint8_t memory[MemorySize / 2]{};
+  uint8_t memory[MemorySize]{};
 
   size_t m_size;
 
   /** program counter */
   uint16_t isp{ProgramStart};
   Chip8Display* m_display;
+  Keypad m_keypad{};
 };
 }  // namespace chip8

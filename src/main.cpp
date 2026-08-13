@@ -39,7 +39,15 @@ int main(int argc, const char** argv) {
   auto buffer = make_unique<char[]>(size);
   programFile.read(buffer.get(), size);
 
-  const auto display = Chip8Display::create();
+  const auto display = Chip8Display::create([](const Framebuffer& buf) {
+    for (int i = 0; i < CHIP8_DISPLAY_HEIGHT * CHIP8_DISPLAY_WIDTH; i++) {
+        auto byte = buf[i];
+        for(int i = 0; i < 8; i++) {
+            cout << (((byte << i) & 0x80) == 0 ? ' ' : '@');
+        }
+        cout << endl;
+    }
+  });
   const auto emulator = Chip8Emulator::create(display.get());
   if (emulator->loadProgram(buffer.get(), size)) {
     cout << "Loaded program successfully." << endl;

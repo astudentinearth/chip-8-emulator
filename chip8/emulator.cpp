@@ -3,9 +3,14 @@
 #include <cstring>
 
 #include "chip8.hpp"
+#include "util.hpp"
 
 namespace chip8 {
 Chip8Display::Chip8Display(onDrawFn onDraw) { m_onDraw = onDraw; }
+
+constexpr int framebufferIdx(int x, int y) {
+  return (y * CHIP8_DISPLAY_HEIGHT) + x;
+}
 
 unique_ptr<Chip8Emulator> Chip8Emulator::create(Chip8Display* display) {
   auto emulator = make_unique<Chip8Emulator>();
@@ -13,7 +18,17 @@ unique_ptr<Chip8Emulator> Chip8Emulator::create(Chip8Display* display) {
   return emulator;
 }
 
-void Chip8Display::clear() { printf("Display cleared!"); }
+void Chip8Display::clear() {
+  Framebuffer buf{};
+  m_framebuffer = buf;
+}
+
+void Chip8Display::redraw() const { m_onDraw(m_framebuffer); }
+bool Chip8Display::drawByte(int x, int y, uint8_t byte) {
+  auto current = m_framebuffer[framebufferIdx(x, y)];
+  m_framebuffer[framebufferIdx(x, y)] ^= byte;
+  return byte & current;  // whether we unset any bits
+}
 
 bool Chip8Emulator::loadProgram(const char* program, size_t size) {
   if (size > MaxProgramSize) return false;
@@ -116,6 +131,11 @@ void Chip8Emulator::call(uint16_t addr) {
   jmp(addr);
 }
 
+void Chip8Emulator::setKey(uint8_t key, bool state) {
+  if (key > 15) return;
+  keypad[key] = state;
+}
+
 bool Chip8Emulator::eval(uint16_t opcode) {
   printf("%X: ", opcode);
   switch (opcode & op::OpClassMask) {
@@ -135,21 +155,21 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     }
 
     case op::Jump: {
-      jmp(opcode & op::Address);
+      jmp(op::Address(opcode));
       printf("jumped to %x\n", isp);
       return true;
     }
 
     case op::Call: {
-      call(opcode & op::Address);
+      call(op::Address(opcode));
       printf("called %x\n", isp);
       return true;
     }
 
     case op::SkipIfEqual: {
-      printf("skipping if v%d (%x) == %x? ", opcode & op::CondReg,
-             m_reg[opcode & op::CondReg], opcode & op::CondReg);
-      if ((m_reg[opcode & op::CondReg >> 8]) == (opcode & op::CondVal)) {
+      printf("skipping if v%d (%x) == %x? ", op::CondReg(opcode),
+             m_reg[op::CondReg(opcode)], op::CondReg(opcode));
+      if ((m_reg[op::CondReg(opcode)]) == (op::CondVal(opcode))) {
         isp += 2;
         printf("skipped. \n");
         return true;
@@ -159,10 +179,10 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     }
 
     case op::SkipIfNotEqual: {
-      printf("skipping if v%d (%x) != %x? ", opcode & op::CondReg,
-             m_reg[opcode & op::CondReg], opcode & op::CondReg);
+      printf("skipping if v%d (%x) != %x? ", op::CondReg(opcode),
+             m_reg[op::CondReg(opcode)], op::CondReg(opcode));
 
-      if ((m_reg[opcode & op::CondReg]) != (opcode & op::CondVal)) {
+      if ((m_reg[op::CondReg(opcode)]) != (op::CondVal(opcode))) {
         isp += 2;
         printf("skipped. \n");
         return true;
@@ -172,10 +192,10 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     }
 
     case op::SkipIfRegEqual: {
-      auto reg1 = m_reg[opcode & op::LeftReg];
-      auto reg2 = m_reg[opcode & op::RightReg];
-      printf("skipping if v%d (%x) != v%d (%x)? ", opcode & op::LeftReg, reg1,
-             opcode & op::RightReg, reg2);
+      auto reg1 = m_reg[op::LeftReg(opcode)];
+      auto reg2 = m_reg[op::RightReg(opcode)];
+      printf("skipping if v%d (%x) != v%d (%x)? ", op::LeftReg(opcode), reg1,
+             op::RightReg(opcode), reg2);
       if (reg1 == reg2) {
         isp += 2;
         printf("skipped. \n");
@@ -186,43 +206,43 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     }
 
     case op::ConstSet: {
-      m_reg[opcode & op::ConstSetReg] = opcode & op::ConstSetVal;
-      printf("set v%.1x = %x", opcode & op::ConstSetReg,
-             opcode & op::ConstSetVal);
+      m_reg[op::ConstSetReg(opcode)] = op::ConstSetVal(opcode);
+      printf("set v%.1x = %x", op::ConstSetReg(opcode),
+             op::ConstSetVal(opcode));
       return false;
     }
 
     case op::ConstAdd: {
-      m_reg[opcode & op::ConstAddReg] = opcode & op::ConstAddVal;
+      m_reg[op::ConstAddReg(opcode)] = op::ConstAddVal(opcode);
       return false;
     }
 
     case op::Math: {
-      switch (opcode & op::BinOpType) {
+      switch (op::BinOpType(opcode)) {
         case op::Assignment: {
-          m_reg[opcode & op::LeftReg] = m_reg[opcode & op::RightReg];
+          m_reg[op::LeftReg(opcode)] = m_reg[op::RightReg(opcode)];
           return false;
         }
 
         case op::Or: {
-          m_reg[opcode & op::LeftReg] |= m_reg[opcode & op::RightReg];
+          m_reg[op::LeftReg(opcode)] |= m_reg[op::RightReg(opcode)];
           return false;
         }
 
         case op::And: {
-          m_reg[opcode & op::LeftReg] &= m_reg[opcode & op::RightReg];
+          m_reg[op::LeftReg(opcode)] &= m_reg[op::RightReg(opcode)];
           return false;
         }
 
         case op::Xor: {
-          m_reg[opcode & op::LeftReg] ^= m_reg[opcode & op::RightReg];
+          m_reg[op::LeftReg(opcode)] ^= m_reg[op::RightReg(opcode)];
           return false;
         }
 
         case op::Add: {
-          auto& left = m_reg[opcode & op::LeftReg];
+          auto& left = m_reg[op::LeftReg(opcode)];
           auto original = left;
-          left += m_reg[opcode & op::RightReg];
+          left += m_reg[op::RightReg(opcode)];
           if (left < original)
             m_reg.vf = 1;
           else
@@ -231,9 +251,9 @@ bool Chip8Emulator::eval(uint16_t opcode) {
         }
 
         case op::Sub: {
-          auto& left = m_reg[opcode & op::LeftReg];
+          auto& left = m_reg[op::LeftReg(opcode)];
           auto original = left;
-          left -= m_reg[opcode & op::RightReg];
+          left -= m_reg[op::RightReg(opcode)];
           if (left > original)
             m_reg.vf = 0;
           else
@@ -242,22 +262,22 @@ bool Chip8Emulator::eval(uint16_t opcode) {
         }
 
         case op::LeftShift: {
-          auto& reg = m_reg[opcode & op::LeftReg];
+          auto& reg = m_reg[op::LeftReg(opcode)];
           m_reg.vf = 0x8000 & reg;  // extract least significant bit
           reg <<= 1;
           return false;
         }
 
         case op::RightShift: {
-          auto& reg = m_reg[opcode & op::LeftReg];
+          auto& reg = m_reg[op::LeftReg(opcode)];
           m_reg.vf = 0x1 & reg;
           reg >>= 1;
           return false;
         }
 
         case op::Difference: {
-          auto& vy = m_reg[opcode & op::RightReg];
-          auto& vx = m_reg[opcode & op::LeftReg];
+          auto& vy = m_reg[op::RightReg(opcode)];
+          auto& vx = m_reg[op::LeftReg(opcode)];
           auto result = vy - vx;
           if (vy >= vx)
             m_reg.vf = 1;
@@ -269,7 +289,7 @@ bool Chip8Emulator::eval(uint16_t opcode) {
       }
 
       case op::SkipIfRegNotEqual: {
-        if (m_reg[opcode & op::LeftReg] != m_reg[opcode & op::RightReg]) {
+        if (m_reg[op::LeftReg(opcode)] != m_reg[op::RightReg(opcode)]) {
           isp += 2;
           return true;
         }
@@ -277,13 +297,76 @@ bool Chip8Emulator::eval(uint16_t opcode) {
       }
 
       case op::SetAddressReg: {
-        m_reg.i = opcode & op::Address;
+        m_reg.i = op::Address(opcode);
         return false;
       }
 
       case op::OffsetJump: {
-        jmp(m_reg.v0 + (opcode & op::Address));
+        jmp(m_reg.v0 + (op::Address(opcode)));
         return true;
+      }
+
+      case op::Random: {
+        m_reg[op::LeftReg(opcode)] = random_byte() & op::ConstSetVal(opcode);
+        return false;
+      }
+
+      case op::Draw: {
+        auto x = m_reg[op::LeftReg(opcode)];
+        auto y = m_reg[op::RightReg(opcode)];
+        auto h = op::DrawHeight(opcode);
+        uint8_t* start = &memory[m_reg.i];
+        bool unset = false;
+        for (uint16_t i = 0; i < h; i++) {
+          unset |= m_display->drawByte(x, y + i, start[i]);
+        }
+        m_reg.vf = unset ? 1 : 0;
+        m_display->redraw();
+        return false;
+      }
+
+      case op::KeyCond: {
+        auto key = m_reg[op::LeftReg(opcode)] & 0xF;
+        if ((opcode & op::KeyCondEqMask) && m_keypad[key]) {
+          isp += 2;
+          return true;
+        }
+        if ((opcode & op::KeyCondNotEqMask) && !m_keypad[key]) {
+          isp += 2;
+          return true;
+        }
+        return false;
+      }
+
+      case op::Misc: {
+        switch (opcode & op::MiscOpTypeMask) {
+          case op::GetKey:
+            m_reg.k = op::LeftReg(opcode);
+            return false;
+
+          case op::GetDelayTimer:
+            m_reg[op::LeftReg(opcode)] = m_reg.dt;
+            return false;
+
+          case op::SetDelayTimer:
+            m_reg.dt = m_reg[op::LeftReg(opcode)];
+            return false;
+
+          case op::SetSoundTimer:
+            m_reg.st = m_reg[op::LeftReg(opcode)];
+            return false;
+
+          case op::AddVxToI:
+            m_reg.i += m_reg[op::LeftReg(opcode)];
+            return false;
+          
+          case op::BCD:
+            auto num = m_reg[op::LeftReg(opcode)];
+            memory[m_reg.i] = num / 100;
+            memory[m_reg.i + 1] = (num / 10) % 10;
+            memory[m_reg.i + 2] = num % 10;
+            return false;
+        }
       }
     }
   }
