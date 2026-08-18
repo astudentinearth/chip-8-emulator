@@ -77,7 +77,9 @@ int main(int argc, const char** argv) {
       for (int i = 0; i < 10; i++) emulator->exec();
       printIsp(emulator.get());
     }
-
+    if(input == "run") {
+      cout << "Exit with: " << emulator->run() << endl;
+    }
     if (input == "exit") break;
   }
 

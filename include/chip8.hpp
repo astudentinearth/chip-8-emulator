@@ -157,8 +157,20 @@ constexpr uint16_t OpClassMask = 0xF000;
 constexpr uint16_t MiscOpTypeMask = 0x00FF;
 constexpr uint16_t KeyCondEqMask = 0x009E;
 constexpr uint16_t KeyCondNotEqMask = 0x00A1;
+constexpr bool IsHcf(uint16_t opcode, uint16_t isp) {
+    if((opcode & Jump) && Address(opcode) == isp) return true;
+    return false;
+}
 
 }  // namespace op
+
+enum class EmulatorState {
+    Running,
+    WaitingInput,
+    Halted
+};
+
+std::ostream& operator <<(std::ostream& os, EmulatorState state);
 
 class Chip8Emulator {
  public:
@@ -186,6 +198,9 @@ class Chip8Emulator {
   /** Executes the instruction at program counter.
    * @return true if execution altered the program counter */
   bool exec();
+
+  EmulatorState run();
+
   void dumpState() const;
 
  private:
@@ -205,5 +220,6 @@ class Chip8Emulator {
   uint16_t isp{ProgramStart};
   Chip8Display* m_display;
   Keypad m_keypad{};
+  EmulatorState m_state{EmulatorState::Halted};
 };
 }  // namespace chip8

@@ -2,12 +2,28 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <ostream>
 
 #include "chip8.hpp"
 #include "util.hpp"
 
 namespace chip8 {
 Chip8Display::Chip8Display(onDrawFn onDraw) { m_onDraw = onDraw; }
+
+std::ostream& operator<<(std::ostream& os, EmulatorState state) {
+  switch (state) {
+    case EmulatorState::Halted:
+      os << "Halted";
+      break;
+    case EmulatorState::Running:
+      os << "Running";
+      break;
+    case EmulatorState::WaitingInput:
+      os << "Waiting input";
+      break;
+  };
+  return os;
+}
 
 unique_ptr<Chip8Emulator> Chip8Emulator::create(Chip8Display* display) {
   auto emulator = make_unique<Chip8Emulator>();
@@ -22,14 +38,14 @@ void Chip8Display::clear() {
 
 void Chip8Display::redraw() const { m_onDraw(m_framebuffer); }
 bool Chip8Display::drawByte(int x, int y, uint8_t byte) {
-    bool unset = false;
-    for(int _x = 0; _x < 8; _x++) {
-        if(((byte << _x) & 0x80) == 0) continue;
-        auto& px = m_framebuffer[x + _x + (y * CHIP8_DISPLAY_WIDTH)];
-        if(px) unset = true;
-        px ^= 1;
-    }
-    return unset;
+  bool unset = false;
+  for (int _x = 0; _x < 8; _x++) {
+    if (((byte << _x) & 0x80) == 0) continue;
+    auto& px = m_framebuffer[x + _x + (y * CHIP8_DISPLAY_WIDTH)];
+    if (px) unset = true;
+    px ^= 1;
+  }
+  return unset;
 }
 
 bool Chip8Emulator::loadProgram(const char* program, size_t size) {
@@ -184,16 +200,18 @@ bool Chip8Emulator::evalMathOp(uint16_t opcode) {
     }
 
     case op::LeftShift: {
-      auto& reg = m_reg[op::LeftReg(opcode)];
-      m_reg.vf = 0x8000 & reg;  // extract least significant bit
-      reg <<= 1;
+      auto vy = m_reg[op::RightReg(opcode)];
+      auto vx = vy << 1;
+      m_reg[op::LeftReg(opcode)] = vx;
+      m_reg.vf = (vy >> 7) & 0x1; 
       break;
     }
 
     case op::RightShift: {
-      auto& reg = m_reg[op::LeftReg(opcode)];
-      m_reg.vf = 0x1 & reg;
-      reg >>= 1;
+      auto vy = m_reg[op::RightReg(opcode)];
+      auto vf = 0x1 & vy;
+      m_reg[op::LeftReg(opcode)] = vy >> 1;
+      m_reg.vf = vf;
       break;
     }
 
@@ -201,11 +219,9 @@ bool Chip8Emulator::evalMathOp(uint16_t opcode) {
       auto& vy = m_reg[op::RightReg(opcode)];
       auto& vx = m_reg[op::LeftReg(opcode)];
       auto result = vy - vx;
-      if (vy >= vx)
-        m_reg.vf = 1;
-      else
-        m_reg.vf = 0;
+      auto vf = vy >= vx ? 1 : 0;
       vx = vy - vx;
+      m_reg.vf = vf;
       break;
     }
   }
@@ -216,6 +232,7 @@ bool Chip8Emulator::evalMiscOp(uint16_t opcode) {
   switch (opcode & op::MiscOpTypeMask) {
     case op::GetKey: {
       m_reg.k = op::LeftReg(opcode);
+      m_state = EmulatorState::WaitingInput;
       return false;
     }
 
@@ -266,6 +283,10 @@ bool Chip8Emulator::evalMiscOp(uint16_t opcode) {
 
 bool Chip8Emulator::eval(uint16_t opcode) {
   printf("%X: ", opcode);
+  if (op::IsHcf(opcode, isp)) {
+    m_state = EmulatorState::Halted;
+    return false;
+  }
   switch (opcode & op::OpClassMask) {
     case 0x0000: {
       if (opcode == op::Return) {
@@ -295,7 +316,6 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     }
 
     case op::SkipIfEqual: {
-      
       if ((m_reg[op::CondReg(opcode)]) == (op::CondVal(opcode))) {
         isp += 4;
         return true;
@@ -401,6 +421,14 @@ bool Chip8Emulator::exec() {
   bool ispSet = eval(fetch(isp));
   if (!ispSet) isp += 2;
   return ispSet;
+}
+
+EmulatorState Chip8Emulator::run() {
+  m_state = EmulatorState::Running;
+  while (m_state == EmulatorState::Running) {
+    exec();
+  }
+  return m_state;
 }
 
 }  // namespace chip8
