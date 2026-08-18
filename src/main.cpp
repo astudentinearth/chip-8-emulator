@@ -73,6 +73,11 @@ int main(int argc, const char** argv) {
       emulator->exec();
       printIsp(emulator.get());
     }
+    if (input == "e10") {
+      for (int i = 0; i < 10; i++) emulator->exec();
+      printIsp(emulator.get());
+    }
+
     if (input == "exit") break;
   }
 

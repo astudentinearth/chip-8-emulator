@@ -295,27 +295,19 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     }
 
     case op::SkipIfEqual: {
-      printf("skipping if v%d (%d) == %d? ", op::CondReg(opcode),
-             m_reg[op::CondReg(opcode)], op::CondVal(opcode));
+      
       if ((m_reg[op::CondReg(opcode)]) == (op::CondVal(opcode))) {
-        isp += 2;
-        printf("skipped. \n");
+        isp += 4;
         return true;
       }
-      printf("nope. \n");
       return false;
     }
 
     case op::SkipIfNotEqual: {
-      printf("skipping if v%d (%x) != %x? ", op::CondReg(opcode),
-             m_reg[op::CondReg(opcode)], op::CondVal(opcode));
-
       if ((m_reg[op::CondReg(opcode)]) != (op::CondVal(opcode))) {
-        isp += 2;
-        printf("skipped. \n");
+        isp += 4;
         return true;
       }
-      printf("nope. \n");
       return false;
     }
 
@@ -325,7 +317,7 @@ bool Chip8Emulator::eval(uint16_t opcode) {
       printf("skipping if v%d (%x) != v%d (%x)? ", op::LeftReg(opcode), reg1,
              op::RightReg(opcode), reg2);
       if (reg1 == reg2) {
-        isp += 2;
+        isp += 4;
         printf("skipped. \n");
         return true;
       }
@@ -341,7 +333,7 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     }
 
     case op::ConstAdd: {
-      m_reg[op::ConstAddReg(opcode)] = op::ConstAddVal(opcode);
+      m_reg[op::ConstAddReg(opcode)] += op::ConstAddVal(opcode);
       return false;
     }
 
@@ -350,7 +342,7 @@ bool Chip8Emulator::eval(uint16_t opcode) {
 
     case op::SkipIfRegNotEqual: {
       if (m_reg[op::LeftReg(opcode)] != m_reg[op::RightReg(opcode)]) {
-        isp += 2;
+        isp += 4;
         return true;
       }
       return false;
