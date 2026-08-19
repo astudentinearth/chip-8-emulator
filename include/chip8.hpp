@@ -4,7 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <stack>
+#include <thread>
 
 using namespace std;
 
@@ -57,6 +59,20 @@ class Chip8Display {
  private:
   Framebuffer m_framebuffer;
   onDrawFn m_onDraw = [](const Framebuffer& _) {};
+};
+
+class EmulatorTimer {
+  public:
+      explicit EmulatorTimer() = default;
+      static unique_ptr<EmulatorTimer> create();
+      uint8_t getVal() const;
+      void set(uint8_t val);
+  private:
+      void loop();
+      bool m_running{false};
+      float m_hz{60.0};
+      mutex mtx_value;
+      uint8_t m_value;
 };
 
 struct Registers {
@@ -205,6 +221,8 @@ class Chip8Emulator {
   void hlt() { m_state = EmulatorState::Halted; }
   Registers getReg() const { return m_reg; }
   Keypad getKeypad() const { return m_keypad; }
+  const uint8_t getDelayTimer() const { return m_delay->getVal(); }
+  const uint8_t getSoundTimer() const { return m_sound->getVal(); }
 
   void dumpState() const;
 
@@ -223,8 +241,11 @@ class Chip8Emulator {
 
   /** program counter */
   uint16_t isp{ProgramStart};
+
   Chip8Display* m_display;
   Keypad m_keypad{};
   EmulatorState m_state{EmulatorState::Halted};
+  unique_ptr<EmulatorTimer> m_delay;
+  unique_ptr<EmulatorTimer> m_sound;
 };
 }  // namespace chip8

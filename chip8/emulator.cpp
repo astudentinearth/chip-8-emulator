@@ -1,7 +1,10 @@
 
+#include <unistd.h>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <mutex>
 #include <ostream>
 
 #include "chip8.hpp"
@@ -28,6 +31,8 @@ std::ostream& operator<<(std::ostream& os, EmulatorState state) {
 unique_ptr<Chip8Emulator> Chip8Emulator::create(Chip8Display* display) {
   auto emulator = make_unique<Chip8Emulator>();
   emulator->m_display = display;
+  emulator->m_delay = EmulatorTimer::create();
+  emulator->m_sound = EmulatorTimer::create();
   return emulator;
 }
 void Chip8Display::clear() {
@@ -45,6 +50,26 @@ bool Chip8Display::drawByte(int x, int y, uint8_t byte) {
     px ^= 1;
   }
   return unset;
+}
+
+unique_ptr<EmulatorTimer> EmulatorTimer::create() { return make_unique<EmulatorTimer>(); }
+uint8_t EmulatorTimer::getVal() const { return m_value; }
+void EmulatorTimer::set(uint8_t val) {
+    lock_guard<mutex> guard(mtx_value);
+    m_value = val;
+    if(m_running) return;
+    thread t([this](){loop();});
+    t.detach();
+} 
+
+void EmulatorTimer::loop() {
+    m_running = true;
+    while(m_running) {
+        lock_guard<mutex> guard(mtx_value);
+        m_value--;
+        if(m_value == 0) { m_running = false; break; }
+        this_thread::sleep_for(chrono::milliseconds(static_cast<long>(1000 / m_hz)));
+    }
 }
 
 bool Chip8Emulator::loadProgram(const char* program, size_t size) {
@@ -241,15 +266,15 @@ bool Chip8Emulator::evalMiscOp(uint16_t opcode) {
     }
 
     case op::GetDelayTimer:
-      m_reg[op::LeftReg(opcode)] = m_reg.dt;
+      m_reg[op::LeftReg(opcode)] = m_delay->getVal();
       return false;
 
     case op::SetDelayTimer:
-      m_reg.dt = m_reg[op::LeftReg(opcode)];
+      m_delay->set(m_reg[op::LeftReg(opcode)]);
       return false;
 
     case op::SetSoundTimer:
-      m_reg.st = m_reg[op::LeftReg(opcode)];
+      m_sound->set(m_reg[op::LeftReg(opcode)]);
       return false;
 
     case op::AddVxToI:
