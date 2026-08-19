@@ -19,7 +19,7 @@ void printIsp(const Chip8Emulator* emulator) {
 
 void runSDLApp(shared_ptr<Chip8Emulator> emulator, Framebuffer& fb) {
   SDL_Init(SDL_INIT_VIDEO);
-  auto window = new EmulatorWindow(fb);
+  auto window = new EmulatorWindow(&fb);
   bool running = true;
   constexpr uint8_t KEY_IGNORE = 99;
   while (running) {

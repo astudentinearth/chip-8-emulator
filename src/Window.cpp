@@ -7,7 +7,7 @@
 #include "SDL3/SDL_render.h"
 #include "chip8.hpp"
 
-EmulatorWindow::EmulatorWindow(chip8::Framebuffer& fb) {
+EmulatorWindow::EmulatorWindow(chip8::Framebuffer* fb) {
   m_fb = fb;
   if (!SDL_CreateWindowAndRenderer("main", StartingWidth, StartingHeight,
                                    SDL_WINDOW_RESIZABLE, &m_window,
@@ -39,7 +39,7 @@ void EmulatorWindow::draw() {
     for (int x = 0; x < chip8::CHIP8_DISPLAY_WIDTH; x++) {
       rect.x = x * wpp + DebugPaneWidth;
       rect.y = y * hpp;
-      bool px = m_fb[(y * chip8::CHIP8_DISPLAY_WIDTH) + x];
+      bool px = (*m_fb)[(y * chip8::CHIP8_DISPLAY_WIDTH) + x];
       if (!px) continue;
       ;
       SDL_RenderFillRect(m_renderer, &rect);
