@@ -52,7 +52,7 @@ class Chip8Display {
   void redraw() const;
   void clear();
   bool drawByte(int x, int y, uint8_t byte);
-  const Framebuffer& getFramebuffer() const;
+  Framebuffer& getFramebuffer() { return m_framebuffer; };
 
  private:
   Framebuffer m_framebuffer;

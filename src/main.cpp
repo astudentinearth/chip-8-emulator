@@ -1,8 +1,12 @@
+#include <SDL3/SDL.h>
+
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <thread>
 
+#include "Window.hpp"
 #include "chip8.hpp"
 
 using namespace std;
@@ -11,6 +15,23 @@ using namespace chip8;
 void printIsp(const Chip8Emulator* emulator) {
   printf("isp: 0x%.2X | opcode: 0x%.2X\n", emulator->getIsp(),
          emulator->fetch(emulator->getIsp()));
+}
+
+void runSDLApp(Framebuffer& fb) {
+  SDL_Init(SDL_INIT_VIDEO);
+  auto window = new EmulatorWindow(fb);
+  bool running = true;
+  while (running) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_EVENT_QUIT) {
+        running = false;
+      }
+    }
+
+    window->draw();
+  }
+  delete window;
 }
 
 int main(int argc, const char** argv) {
@@ -39,16 +60,7 @@ int main(int argc, const char** argv) {
   auto buffer = make_unique<char[]>(size);
   programFile.read(buffer.get(), size);
 
-  const auto display = Chip8Display::create([](const Framebuffer& buf) {
-    cout << "===============================" << endl;
-    for (int y = 0; y < CHIP8_DISPLAY_HEIGHT; y++) {
-      for (int x = 0; x < CHIP8_DISPLAY_WIDTH; x++) {
-        cout << (buf[(y * CHIP8_DISPLAY_WIDTH) + x] ? "@" : " ");
-      }
-      cout << endl;
-    }
-    cout << "===============================" << endl;
-  });
+  const auto display = Chip8Display::create([](const Framebuffer& buf) {});
   const auto emulator = Chip8Emulator::create(display.get());
   if (emulator->loadProgram(buffer.get(), size)) {
     cout << "Loaded program successfully." << endl;
@@ -57,31 +69,10 @@ int main(int argc, const char** argv) {
     return 1;
   }
 
-  while (true) {
-    string input{};
-    cout << "> ";
-    if (!(cin >> input)) break;
-    if (input == "next") {
-      emulator->fetchNext();
-      printIsp(emulator.get());
-    }
-    if (input == "isp") {
-      printIsp(emulator.get());
-    }
-    if (input == "reg") emulator->dumpState();
-    if (input == "exec" || input == "e") {
-      emulator->exec();
-      printIsp(emulator.get());
-    }
-    if (input == "e10") {
-      for (int i = 0; i < 10; i++) emulator->exec();
-      printIsp(emulator.get());
-    }
-    if(input == "run") {
-      cout << "Exit with: " << emulator->run() << endl;
-    }
-    if (input == "exit") break;
-  }
-
+  cout << "Creating SDL window" << endl;
+  thread t([&display]() { runSDLApp(display->getFramebuffer()); });
+  cout << "Running program" << endl;
+  emulator->run();
+  t.join();
   return 0;
 }
