@@ -30,7 +30,6 @@ unique_ptr<Chip8Emulator> Chip8Emulator::create(Chip8Display* display) {
   emulator->m_display = display;
   return emulator;
 }
-
 void Chip8Display::clear() {
   Framebuffer buf{};
   m_framebuffer = buf;
@@ -134,6 +133,10 @@ void Chip8Emulator::dumpState() const {
   dumpreg_("i", reg.i);
   dumpreg_("isp", isp);
   dumpreg_("opcode", fetch(isp));
+  printf("=== keypad ===\n");
+  for (uint8_t i = 0; i <= 0xF; i++) {
+    printf("%X: %d \n", i, m_keypad[i]);
+  }
 }
 
 uint16_t Chip8Emulator::ret() {
@@ -203,7 +206,7 @@ bool Chip8Emulator::evalMathOp(uint16_t opcode) {
       auto vy = m_reg[op::RightReg(opcode)];
       auto vx = vy << 1;
       m_reg[op::LeftReg(opcode)] = vx;
-      m_reg.vf = (vy >> 7) & 0x1; 
+      m_reg.vf = (vy >> 7) & 0x1;
       break;
     }
 
@@ -231,6 +234,7 @@ bool Chip8Emulator::evalMathOp(uint16_t opcode) {
 bool Chip8Emulator::evalMiscOp(uint16_t opcode) {
   switch (opcode & op::MiscOpTypeMask) {
     case op::GetKey: {
+      cout << "waiting for input" << endl;
       m_reg.k = op::LeftReg(opcode);
       m_state = EmulatorState::WaitingInput;
       return false;
@@ -282,7 +286,6 @@ bool Chip8Emulator::evalMiscOp(uint16_t opcode) {
 }
 
 bool Chip8Emulator::eval(uint16_t opcode) {
-  printf("%X: ", opcode);
   if (op::IsHcf(opcode, isp)) {
     m_state = EmulatorState::Halted;
     return false;
@@ -291,12 +294,10 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     case 0x0000: {
       if (opcode == op::Return) {
         ret();
-        printf("returned to %x\n", isp);
         return true;
       }
 
       if (opcode == op::ClearDisplay) {
-        printf("display cleared.");
         m_display->clear();
         return false;
       }
@@ -305,13 +306,11 @@ bool Chip8Emulator::eval(uint16_t opcode) {
 
     case op::Jump: {
       jmp(op::Address(opcode));
-      printf("jumped to %x\n", isp);
       return true;
     }
 
     case op::Call: {
       call(op::Address(opcode));
-      printf("called %x\n", isp);
       return true;
     }
 
@@ -334,21 +333,15 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     case op::SkipIfRegEqual: {
       auto reg1 = m_reg[op::LeftReg(opcode)];
       auto reg2 = m_reg[op::RightReg(opcode)];
-      printf("skipping if v%d (%x) != v%d (%x)? ", op::LeftReg(opcode), reg1,
-             op::RightReg(opcode), reg2);
       if (reg1 == reg2) {
         isp += 4;
-        printf("skipped. \n");
         return true;
       }
-      printf("nope. \n");
       return false;
     }
 
     case op::ConstSet: {
       m_reg[op::ConstSetReg(opcode)] = op::ConstSetVal(opcode);
-      printf("set v%.1x = %x", op::ConstSetReg(opcode),
-             op::ConstSetVal(opcode));
       return false;
     }
 
@@ -389,7 +382,6 @@ bool Chip8Emulator::eval(uint16_t opcode) {
       auto h = op::DrawHeight(opcode);
       uint8_t* start = &memory[m_reg.i];
       bool unset = false;
-      printf(" drawing %d bytes x: %d, y: %d \n", h, x, y);
       for (uint16_t i = 0; i < h; i++) {
         unset |= m_display->drawByte(x, y + i, start[i]);
       }
@@ -400,12 +392,12 @@ bool Chip8Emulator::eval(uint16_t opcode) {
 
     case op::KeyCond: {
       auto key = m_reg[op::LeftReg(opcode)] & 0xF;
-      if ((opcode & op::KeyCondEqMask) && m_keypad[key]) {
-        isp += 2;
+      if (((opcode & 0x00FF) == op::KeyCondEqMask) && m_keypad[key]) {
+        isp += 4;
         return true;
       }
-      if ((opcode & op::KeyCondNotEqMask) && !m_keypad[key]) {
-        isp += 2;
+      if (((opcode & 0x00FF) == op::KeyCondNotEqMask) && !m_keypad[key]) {
+        isp += 4;
         return true;
       }
       return false;
@@ -425,10 +417,16 @@ bool Chip8Emulator::exec() {
 
 EmulatorState Chip8Emulator::run() {
   m_state = EmulatorState::Running;
-  while (m_state == EmulatorState::Running) {
+  while (m_state != EmulatorState::Halted) {
+    if (m_state == EmulatorState::WaitingInput) continue;
     exec();
   }
   return m_state;
+}
+
+void Chip8Emulator::continueWithKey(uint8_t key) {
+  m_reg[m_reg.k] = key;
+  m_state = EmulatorState::Running;
 }
 
 }  // namespace chip8

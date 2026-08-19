@@ -200,6 +200,11 @@ class Chip8Emulator {
   bool exec();
 
   EmulatorState run();
+  void continueWithKey(uint8_t key);
+  EmulatorState getState() const { return m_state; }
+  void hlt() { m_state = EmulatorState::Halted; }
+  Registers getReg() const { return m_reg; }
+  Keypad getKeypad() const { return m_keypad; }
 
   void dumpState() const;
 
