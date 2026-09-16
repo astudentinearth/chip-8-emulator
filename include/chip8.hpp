@@ -207,6 +207,7 @@ class Chip8Emulator {
   void call(uint16_t addr);
   void jmp(uint16_t addr);
   void setKey(uint8_t key, bool state);
+  void setClockSpeed(uint64_t hz);
 
   /** Executes passed instruction immediately.
    * @return true if execution altered the program counter */
@@ -241,6 +242,7 @@ class Chip8Emulator {
 
   /** program counter */
   uint16_t isp{ProgramStart};
+  uint64_t m_clockSpeed{500};
 
   Chip8Display* m_display;
   Keypad m_keypad{};

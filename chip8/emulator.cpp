@@ -1,4 +1,5 @@
 
+#include <thread>
 #include <unistd.h>
 #include <chrono>
 #include <cstdio>
@@ -45,7 +46,9 @@ bool Chip8Display::drawByte(int x, int y, uint8_t byte) {
   bool unset = false;
   for (int _x = 0; _x < 8; _x++) {
     if (((byte << _x) & 0x80) == 0) continue;
-    auto& px = m_framebuffer[x + _x + (y * CHIP8_DISPLAY_WIDTH)];
+    const auto idx = x + _x + (y * CHIP8_DISPLAY_WIDTH);
+    if(idx >= m_framebuffer.size()) continue;
+    auto& px = m_framebuffer[idx];
     if (px) unset = true;
     px ^= 1;
   }
@@ -445,6 +448,7 @@ EmulatorState Chip8Emulator::run() {
   while (m_state != EmulatorState::Halted) {
     if (m_state == EmulatorState::WaitingInput) continue;
     exec();
+    this_thread::sleep_for(chrono::microseconds(1'000'000 / m_clockSpeed));
   }
   return m_state;
 }
@@ -452,6 +456,11 @@ EmulatorState Chip8Emulator::run() {
 void Chip8Emulator::continueWithKey(uint8_t key) {
   m_reg[m_reg.k] = key;
   m_state = EmulatorState::Running;
+}
+
+
+void Chip8Emulator::setClockSpeed(uint64_t hz) {
+  m_clockSpeed = hz;
 }
 
 }  // namespace chip8
