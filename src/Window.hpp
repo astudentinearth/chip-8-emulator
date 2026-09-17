@@ -1,5 +1,6 @@
 #include <SDL3/SDL.h>
 
+#include "Color.hpp"
 #include "chip8.hpp"
 
 
@@ -16,11 +17,13 @@ class EmulatorWindow {
     m_st = st;
   }
   void setTitle(std::string title);
+  void setColorScheme(ColorScheme colorscheme) { m_colorscheme = colorscheme; }
   ~EmulatorWindow();
 
  private:
   SDL_Window* m_window = nullptr;
   SDL_Renderer* m_renderer = nullptr;
+  ColorScheme m_colorscheme = ColorScheme::Default;
   chip8::Framebuffer *m_fb;
   chip8::Registers m_reg{};
   chip8::Keypad m_keypad{};

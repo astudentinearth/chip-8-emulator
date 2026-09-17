@@ -6,13 +6,14 @@
 #include <iostream>
 #include <thread>
 
+#include "Color.hpp"
 #include "Window.hpp"
 #include "chip8.hpp"
 
 using namespace std;
 using namespace chip8;
 
-void runSDLApp(shared_ptr<Chip8Emulator> emulator, Framebuffer &fb);
+void runSDLApp(shared_ptr<Chip8Emulator> emulator, Framebuffer &fb, ColorScheme colorscheme = ColorScheme::Default);
 
 void printIsp(const Chip8Emulator *emulator) {
   printf("isp: 0x%.2X | opcode: 0x%.2X\n", emulator->getIsp(),
@@ -55,9 +56,21 @@ int main(int argc, const char **argv) {
     return 1;
   }
 
+  ColorScheme theme = ColorScheme::Default;
+
+  for (size_t i = 1; i < argc; i++) {
+    auto arg = std::string(argv[i]);
+    if (arg == "--kanagawa")
+      theme = ColorScheme::Kanagawa;
+    if (arg == "--mocha")
+      theme = ColorScheme::Mocha;
+    if (arg == "--default-colors")
+      theme = ColorScheme::Default;
+  }
+
   cout << "Creating SDL window" << endl;
-  thread t([&emulator, &display]() {
-    runSDLApp(emulator, display->getFramebuffer());
+  thread t([&emulator, &display, theme]() {
+    runSDLApp(emulator, display->getFramebuffer(), theme);
   });
   cout << "Running program" << endl;
   emulator->run();

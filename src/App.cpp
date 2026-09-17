@@ -1,4 +1,5 @@
 
+#include "Color.hpp"
 #include "Window.hpp"
 #include "chip8.hpp"
 #include <SDL3/SDL.h>
@@ -7,10 +8,11 @@
 using namespace std;
 using namespace chip8;
 
-void runSDLApp(shared_ptr<Chip8Emulator> emulator, Framebuffer &fb) {
+void runSDLApp(shared_ptr<Chip8Emulator> emulator, Framebuffer &fb, ColorScheme colorscheme = ColorScheme::Default) {
   SDL_Init(SDL_INIT_VIDEO);
   auto window = new EmulatorWindow(&fb);
   window->setTitle("CHIP-8 Emulator");
+  window->setColorScheme(colorscheme);
   bool running = true;
   constexpr uint8_t KEY_IGNORE = 99;
   while (running) {

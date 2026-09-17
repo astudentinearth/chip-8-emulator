@@ -8,7 +8,7 @@
 #include "SDL3/SDL_video.h"
 #include "chip8.hpp"
 
-EmulatorWindow::EmulatorWindow(chip8::Framebuffer* fb) {
+EmulatorWindow::EmulatorWindow(chip8::Framebuffer *fb) {
   m_fb = fb;
   if (!SDL_CreateWindowAndRenderer("main", StartingWidth, StartingHeight,
                                    SDL_WINDOW_RESIZABLE, &m_window,
@@ -23,9 +23,13 @@ EmulatorWindow::~EmulatorWindow() {
 }
 
 void EmulatorWindow::draw() {
-  SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+  SDL_SetRenderDrawColor(m_renderer, m_colorscheme.background.red,
+                         m_colorscheme.background.green,
+                         m_colorscheme.background.blue, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(m_renderer);
-  SDL_SetRenderDrawColor(m_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+  SDL_SetRenderDrawColor(m_renderer, m_colorscheme.foreground.red,
+                         m_colorscheme.foreground.green,
+                         m_colorscheme.foreground.blue, SDL_ALPHA_OPAQUE);
   int width{0}, height{0};
   SDL_GetWindowSize(m_window, &width, &height);
   float wpp =
@@ -40,7 +44,8 @@ void EmulatorWindow::draw() {
       rect.x = x * dpi + DebugPaneWidth;
       rect.y = y * dpi;
       bool px = (*m_fb)[(y * chip8::CHIP8_DISPLAY_WIDTH) + x];
-      if (!px) continue;
+      if (!px)
+        continue;
       ;
       SDL_RenderFillRect(m_renderer, &rect);
     }
