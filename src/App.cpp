@@ -1,4 +1,5 @@
 
+#include "App.hpp"
 #include "Color.hpp"
 #include "Window.hpp"
 #include "chip8.hpp"
@@ -8,11 +9,11 @@
 using namespace std;
 using namespace chip8;
 
-void runSDLApp(shared_ptr<Chip8Emulator> emulator, Framebuffer &fb, ColorScheme colorscheme = ColorScheme::Default) {
+void runSDLApp(AppContext &context) {
   SDL_Init(SDL_INIT_VIDEO);
-  auto window = new EmulatorWindow(&fb);
+  auto window = new EmulatorWindow(&context.framebuffer);
   window->setTitle("CHIP-8 Emulator");
-  window->setColorScheme(colorscheme);
+  window->setColorScheme(context.colorscheme);
   bool running = true;
   constexpr uint8_t KEY_IGNORE = 99;
   while (running) {
@@ -20,7 +21,7 @@ void runSDLApp(shared_ptr<Chip8Emulator> emulator, Framebuffer &fb, ColorScheme 
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_EVENT_QUIT) {
         running = false;
-        emulator->hlt();
+        context.emulator->hlt();
         break;
       }
       if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
@@ -76,7 +77,7 @@ void runSDLApp(shared_ptr<Chip8Emulator> emulator, Framebuffer &fb, ColorScheme 
           break;
         case SDLK_Q:
           key = KEY_IGNORE;
-          emulator->dumpState();
+          context.emulator->dumpState();
           break;
         default:
           key = KEY_IGNORE;
@@ -84,15 +85,17 @@ void runSDLApp(shared_ptr<Chip8Emulator> emulator, Framebuffer &fb, ColorScheme 
         }
         if (key == KEY_IGNORE)
           continue;
-        emulator->setKey(key, event.type == SDL_EVENT_KEY_DOWN ? true : false);
-        if (emulator->getState() == EmulatorState::WaitingInput)
-          emulator->continueWithKey(key);
+        context.emulator->setKey(key, event.type == SDL_EVENT_KEY_DOWN ? true
+                                                                       : false);
+        if (context.emulator->getState() == EmulatorState::WaitingInput)
+          context.emulator->continueWithKey(key);
       }
     }
 
-    window->setDebugInfo(emulator->getReg(), emulator->getKeypad(),
-                         emulator->getState(), emulator->getDelayTimer(),
-                         emulator->getSoundTimer());
+    window->setDebugInfo(
+        context.emulator->getReg(), context.emulator->getKeypad(),
+        context.emulator->getState(), context.emulator->getDelayTimer(),
+        context.emulator->getSoundTimer());
     window->draw();
   }
   delete window;

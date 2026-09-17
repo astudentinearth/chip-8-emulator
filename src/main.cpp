@@ -6,19 +6,12 @@
 #include <iostream>
 #include <thread>
 
+#include "App.hpp"
 #include "Color.hpp"
-#include "Window.hpp"
 #include "chip8.hpp"
 
 using namespace std;
 using namespace chip8;
-
-void runSDLApp(shared_ptr<Chip8Emulator> emulator, Framebuffer &fb, ColorScheme colorscheme = ColorScheme::Default);
-
-void printIsp(const Chip8Emulator *emulator) {
-  printf("isp: 0x%.2X | opcode: 0x%.2X\n", emulator->getIsp(),
-         emulator->fetch(emulator->getIsp()));
-}
 
 int main(int argc, const char **argv) {
   if (argc < 2) {
@@ -69,9 +62,15 @@ int main(int argc, const char **argv) {
   }
 
   cout << "Creating SDL window" << endl;
-  thread t([&emulator, &display, theme]() {
-    runSDLApp(emulator, display->getFramebuffer(), theme);
-  });
+
+  auto context = AppContext{
+      .filename = filename,
+      .colorscheme = theme,
+      .emulator = emulator,
+      .framebuffer = display->getFramebuffer(),
+  };
+
+  thread t([&context]() { runSDLApp(context); });
   cout << "Running program" << endl;
   emulator->run();
   t.join();
