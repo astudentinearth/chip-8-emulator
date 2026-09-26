@@ -57,7 +57,7 @@ class Chip8Display {
   Framebuffer& getFramebuffer() { return m_framebuffer; };
 
  private:
-  Framebuffer m_framebuffer;
+  Framebuffer m_framebuffer{};
   onDrawFn m_onDraw = [](const Framebuffer& _) {};
 };
 
