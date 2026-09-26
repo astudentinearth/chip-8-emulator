@@ -63,16 +63,17 @@ int main(int argc, const char **argv) {
 
   cout << "Creating SDL window" << endl;
 
-  auto context = AppContext{
-      .filename = filename,
-      .colorscheme = theme,
-      .emulator = emulator,
-      .framebuffer = display->getFramebuffer(),
-  };
-
-  thread t([&context]() { runSDLApp(context); });
+  auto context = AppContext{.filename = filename,
+                            .colorscheme = theme,
+                            .emulator = emulator,
+                            .framebuffer = display->getFramebuffer(),
+                            .window_ready = promise<void>{}};
+  thread t([&emulator, ready = std::move(context.window_ready.get_future())]() {
+    ready.wait();
+    emulator->run();
+  });
+  runSDLApp(context);
   cout << "Running program" << endl;
-  emulator->run();
   t.join();
   return 0;
 }
