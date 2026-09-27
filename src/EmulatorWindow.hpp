@@ -9,6 +9,8 @@
 #include <QPushButton>
 #include <QtWidgets/qwidget.h>
 
+class QtEmulatorWindow;
+
 class EmulatorSource : public QObject {
   Q_OBJECT
 public:
@@ -65,7 +67,7 @@ class EmulatorToolbar : public QToolBar {
   Q_OBJECT
 
 public:
-  explicit EmulatorToolbar(AppContext &context, QWidget *parent = nullptr);
+  explicit EmulatorToolbar(AppContext &context, QtEmulatorWindow *parent);
 
 public slots:
   void setEmulatorState(chip8::EmulatorState st) {
@@ -130,6 +132,10 @@ public slots:
       m_layout->addWidget(m_debugger);
     }
     else m_layout->removeWidget(m_debugger);
+  }
+
+  void setClockSpeed(uint64_t clockSpeed) {
+    m_context.emulator->setClockSpeed(clockSpeed);
   }
 
 private:
