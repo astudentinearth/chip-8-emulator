@@ -17,6 +17,7 @@ struct AppContext {
     int argc;
     const char** argv;
     std::string getWindowTitle() { return "CHIP-8 Emulator ("s + filename  + ")"s; }
+    bool debuggerVisible{true};
 };
 
 void runSDLApp(AppContext& context);

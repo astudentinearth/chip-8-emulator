@@ -13,8 +13,7 @@ EmulatorDebugger::EmulatorDebugger(QWidget *parent): QWidget(parent) {
 }
 
 void EmulatorDebugger::render_() {
-    auto text = QString(
-            "v0 %1 | v1 %2 | v2 %3 | v3 %4 | v4 %5 | v5 %6 | v6 %7\n"
+    auto text = QString("v0 %1 | v1 %2 | v2 %3 | v3 %4 | v4 %5 | v5 %6 | v6 %7\n"
             "v7 %8 | v8 %9 | v9 %10 | va %11 | vb %12 | vc %13 | vd %14 | ve %15\n"
             "vf %16 | isp %17 | dt %18 | st %19"
             )
