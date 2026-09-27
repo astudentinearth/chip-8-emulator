@@ -39,10 +39,10 @@ const uint8_t fontset[CHIP8_FONT_SET_SIZE]{
 constexpr uint8_t CharGlyphOffset(uint8_t ch) { return ch * 5; }
 
 using Framebuffer = array<uint8_t, CHIP8_DISPLAY_WIDTH * CHIP8_DISPLAY_HEIGHT>;
+using onDrawFn = std::function<void(Framebuffer)>;
 
 class Chip8Display {
  public:
-  typedef void (*onDrawFn)(const Framebuffer& buf);
   explicit Chip8Display() = default;
   explicit Chip8Display(onDrawFn onDraw);
   static unique_ptr<Chip8Display> create() {
@@ -53,12 +53,13 @@ class Chip8Display {
   }
   void redraw() const;
   void clear();
+  void onDraw(onDrawFn onDraw) { m_onDraw = onDraw; }
   bool drawByte(int x, int y, uint8_t byte);
   Framebuffer& getFramebuffer() { return m_framebuffer; };
 
  private:
   Framebuffer m_framebuffer{};
-  onDrawFn m_onDraw = [](const Framebuffer& _) {};
+  onDrawFn m_onDraw = [](Framebuffer _) {};
 };
 
 class EmulatorTimer {
@@ -224,6 +225,7 @@ class Chip8Emulator {
   Keypad getKeypad() const { return m_keypad; }
   const uint8_t getDelayTimer() const { return m_delay->getVal(); }
   const uint8_t getSoundTimer() const { return m_sound->getVal(); }
+  Chip8Display *display() { return m_display; }
 
   void dumpState() const;
 

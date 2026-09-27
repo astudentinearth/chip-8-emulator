@@ -17,12 +17,16 @@
     {
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
-          packages = with pkgs; [
-            cmake
-            bear
-            gnumake
-            sdl3
-          ];
+          packages =
+            with pkgs;
+            [
+              cmake
+              bear
+              gnumake
+              sdl3
+              qt6.qtbase
+            ]
+            ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux (with pkgs; [ qt6.wayland ]);
 
           env = {
           };
@@ -31,4 +35,3 @@
     };
 
 }
-

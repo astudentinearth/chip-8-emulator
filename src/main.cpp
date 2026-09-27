@@ -67,13 +67,16 @@ int main(int argc, const char **argv) {
                             .colorscheme = theme,
                             .emulator = emulator,
                             .framebuffer = display->getFramebuffer(),
-                            .window_ready = promise<void>{}};
+                            .window_ready = promise<void>{},
+                            .argc = argc,
+                            .argv = argv
+  };
   thread t([&emulator, ready = std::move(context.window_ready.get_future())]() {
     ready.wait();
     emulator->run();
   });
-  runSDLApp(context);
+  auto result = runQt6App(context);
   cout << "Running program" << endl;
   t.join();
-  return 0;
+  return result;
 }

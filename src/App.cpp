@@ -3,17 +3,21 @@
 #include "Color.hpp"
 #include "Window.hpp"
 #include "chip8.hpp"
+#include <QtWidgets/qwidget.h>
 #include <SDL3/SDL.h>
 #include <string>
+#include <QWidget>
+#include <QApplication>
+#include "EmulatorWindow.hpp"
 
 using namespace std;
 using namespace chip8;
 
 void runSDLApp(AppContext &context) {
   SDL_Init(SDL_INIT_VIDEO);
-  auto window = new EmulatorWindow(&context.framebuffer);
-  window->setTitle("CHIP-8 Emulator");
-  window->setColorScheme(context.colorscheme);
+  EmulatorWindow window(&context.framebuffer);
+  window.setTitle("CHIP-8 Emulator ("s + context.filename+ ")");
+  window.setColorScheme(context.colorscheme);
   context.window_ready.set_value();
   bool running = true;
   constexpr uint8_t KEY_IGNORE = 99;
@@ -46,11 +50,20 @@ void runSDLApp(AppContext &context) {
       }
     }
 
-    window->setDebugInfo(
+    window.setDebugInfo(
         context.emulator->getReg(), context.emulator->getKeypad(),
         context.emulator->getState(), context.emulator->getDelayTimer(),
         context.emulator->getSoundTimer());
-    window->draw();
+    window.draw();
   }
-  delete window;
 }
+
+
+int runQt6App(AppContext &context) {
+  QApplication app(context.argc, const_cast<char**>(context.argv));
+  QtEmulatorWindow window(nullptr, context);
+  window.show();
+  context.window_ready.set_value();
+  return app.exec();
+}
+

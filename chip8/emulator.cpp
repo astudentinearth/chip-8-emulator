@@ -39,6 +39,7 @@ unique_ptr<Chip8Emulator> Chip8Emulator::create(Chip8Display* display) {
 void Chip8Display::clear() {
   Framebuffer buf{};
   m_framebuffer = buf;
+  redraw();
 }
 
 void Chip8Display::redraw() const { m_onDraw(m_framebuffer); }
