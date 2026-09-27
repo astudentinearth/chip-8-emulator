@@ -7,20 +7,32 @@ QtEmulatorWindow::QtEmulatorWindow(QWidget *parent, AppContext &context)
   resize(DefaultWidth, DefaultHeight);
   setMinimumSize(DefaultWidth / 2, DefaultHeight / 2);
 
+  m_emulator = new EmulatorSource(context, this);
+  m_toolbar = new EmulatorToolbar(this);
+  m_debugger = new EmulatorDebugger(this);
+
   m_renderer = new EmulatorRenderer(this, chip8::Framebuffer{});
   m_renderer->setColorScheme(context.colorscheme);
 
   m_layout = new QVBoxLayout(this);
   m_layout->setContentsMargins(0, 0, 0, 0);
+  m_layout->setMenuBar(m_toolbar);
   m_layout->addWidget(m_renderer, 1);
+  m_layout->addWidget(m_debugger);
   m_renderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-  context.emulator->display()->onDraw(
-      [this](chip8::Framebuffer fb) { emit redraw(fb); });
-  connect(this, &QtEmulatorWindow::redraw, m_renderer,
+
+  connect(m_emulator, &EmulatorSource::emulatorRedraw, m_renderer,
           &EmulatorRenderer::setFrame, Qt::QueuedConnection);
+
+  connect(m_emulator, &EmulatorSource::emulatorStateChanged, m_toolbar,
+          &EmulatorToolbar::setEmulatorState, Qt::QueuedConnection);
+
+  connect(m_emulator, &EmulatorSource::registersChanged, m_debugger, &EmulatorDebugger::setRegisters, Qt::QueuedConnection);
+
+  connect(m_emulator, &EmulatorSource::ispChanged, m_debugger, &EmulatorDebugger::setIsp, Qt::QueuedConnection);
 }
 
 QtEmulatorWindow::~QtEmulatorWindow() {
-    m_context.emulator->hlt();
-    m_context.emulator->display()->onDraw([](chip8::Framebuffer _){});
+  m_context.emulator->hlt();
+  m_context.emulator->display()->onDraw([](chip8::Framebuffer _) {});
 }

@@ -265,7 +265,7 @@ bool Chip8Emulator::evalMiscOp(uint16_t opcode) {
     case op::GetKey: {
       cout << "waiting for input" << endl;
       m_reg.k = op::LeftReg(opcode);
-      m_state = EmulatorState::WaitingInput;
+      setState_(EmulatorState::WaitingInput);
       return false;
     }
 
@@ -316,7 +316,7 @@ bool Chip8Emulator::evalMiscOp(uint16_t opcode) {
 
 bool Chip8Emulator::eval(uint16_t opcode) {
   if (op::IsHcf(opcode, isp)) {
-    m_state = EmulatorState::Halted;
+    setState_(EmulatorState::Halted);
     return false;
   }
   switch (opcode & op::OpClassMask) {
@@ -441,11 +441,12 @@ bool Chip8Emulator::eval(uint16_t opcode) {
 bool Chip8Emulator::exec() {
   bool ispSet = eval(fetch(isp));
   if (!ispSet) isp += 2;
+  m_onInstructionExecuted(m_reg, isp);
   return ispSet;
 }
 
 EmulatorState Chip8Emulator::run() {
-  m_state = EmulatorState::Running;
+  setState_(EmulatorState::Running);
   while (m_state != EmulatorState::Halted) {
     if (m_state == EmulatorState::WaitingInput) continue;
     exec();
@@ -456,7 +457,7 @@ EmulatorState Chip8Emulator::run() {
 
 void Chip8Emulator::continueWithKey(uint8_t key) {
   m_reg[m_reg.k] = key;
-  m_state = EmulatorState::Running;
+  setState_(EmulatorState::Running);
 }
 
 

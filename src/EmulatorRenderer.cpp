@@ -20,11 +20,15 @@ void EmulatorRenderer::paintEvent(QPaintEvent *event) {
   float hpp = static_cast<float>(height()) / chip8::CHIP8_DISPLAY_HEIGHT;
   float dpi = min(wpp, hpp);
 
+  float aspect_ratio = static_cast<float>(width()) / static_cast<float>(height());
+  float x_offset = (static_cast<float>(width()) - (dpi * chip8::CHIP8_DISPLAY_WIDTH)) / 2;
+  float y_offset = (static_cast<float>(height()) - (dpi * chip8::CHIP8_DISPLAY_HEIGHT)) / 2;
+
   painter.setPen(QColor(fg.red, fg.green, fg.blue));
   painter.setBrush(QColor(fg.red, fg.green, fg.blue));
 
   for(size_t i = 0; i < m_framebuffer.size(); i++) {
-    if(m_framebuffer[i]) painter.drawRect(_x(i) * dpi, _y(i) * dpi, dpi, dpi);
+    if(m_framebuffer[i]) painter.drawRect(x_offset + _x(i) * dpi, y_offset + _y(i) * dpi, dpi, dpi);
   }
   
 }

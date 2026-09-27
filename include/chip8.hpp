@@ -226,12 +226,19 @@ class Chip8Emulator {
   const uint8_t getDelayTimer() const { return m_delay->getVal(); }
   const uint8_t getSoundTimer() const { return m_sound->getVal(); }
   Chip8Display *display() { return m_display; }
-
+  void onStateChanged(std::function<void(EmulatorState)> fn) { m_onStateChanged = fn; }
+  void onInstructionExecuted(std::function<void(Registers, uint16_t)> fn) { m_onInstructionExecuted = fn; }
   void dumpState() const;
 
  private:
   bool evalMathOp(uint16_t opcode);
   bool evalMiscOp(uint16_t opcode);
+  void setState_(EmulatorState state) { 
+    m_state = state;
+    m_onStateChanged(state);
+  };
+  std::function<void(EmulatorState)> m_onStateChanged{};
+  std::function<void(Registers, uint16_t)> m_onInstructionExecuted{};
   Registers m_reg{};
 
   /** call stack */

@@ -21,7 +21,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
 add_library(chip8 STATIC chip8/chip8.cpp chip8/emulator.cpp chip8/util.cpp)
-add_executable(chip8-emulator src/main.cpp src/Window.cpp src/App.cpp src/EmulatorRenderer.cpp src/EmulatorWindow.cpp)
+add_executable(chip8-emulator 
+  src/main.cpp 
+  src/Window.cpp 
+  src/App.cpp 
+  src/EmulatorRenderer.cpp 
+  src/EmulatorWindow.cpp
+  src/EmulatorToolbar.cpp
+  src/EmulatorSource.cpp
+  src/EmulatorDebugger.cpp
+)
 target_include_directories(chip8 PUBLIC include/)
 target_link_libraries(chip8-emulator PRIVATE chip8 SDL3::SDL3 Qt6::Widgets)
 
