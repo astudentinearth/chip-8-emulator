@@ -1,4 +1,5 @@
 #include "App.hpp"
+#include "Color.hpp"
 #include "chip8.hpp"
 #include <QLabel>
 #include <QVBoxLayout>
@@ -15,18 +16,17 @@ public:
 public slots:
   void setFrame(chip8::Framebuffer framebuffer) {
     m_framebuffer = framebuffer;
-    counter++;
-    m_label->setText(QString("Counter: %1").arg(counter));
     update();
   }
 
+  void setColorScheme(ColorScheme cs) { m_colorscheme = cs; update(); }
+
 protected:
-  void paintEvent(QPaintEvent event);
+  void paintEvent(QPaintEvent *event) override;
 
 private:
   chip8::Framebuffer m_framebuffer;
-  QLabel *m_label;
-  int counter{0};
+  ColorScheme m_colorscheme{ColorScheme::Default};
 };
 
 class QtEmulatorWindow : public QWidget {
