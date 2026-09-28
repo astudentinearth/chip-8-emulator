@@ -1,5 +1,6 @@
 
 #include "EmulatorWindow.hpp"
+#include <QPalette>
 
 QtEmulatorWindow::QtEmulatorWindow(QWidget *parent, AppContext &context)
     : QWidget(parent), m_context{context} {
@@ -13,7 +14,7 @@ QtEmulatorWindow::QtEmulatorWindow(QWidget *parent, AppContext &context)
 
   m_renderer = new EmulatorRenderer(this, chip8::Framebuffer{});
   m_renderer->setColorScheme(context.colorscheme);
-
+  
   m_layout = new QVBoxLayout(this);
   m_layout->setContentsMargins(0, 0, 0, 0);
   m_layout->setMenuBar(m_toolbar);

@@ -192,6 +192,7 @@ std::ostream& operator <<(std::ostream& os, EmulatorState state);
 class Chip8Emulator {
  public:
   explicit Chip8Emulator() = default;
+  ~Chip8Emulator();
   enum : int {
     MemorySize = 4096,
     ProgramStart = 0x200,
@@ -229,8 +230,19 @@ class Chip8Emulator {
   void onStateChanged(std::function<void(EmulatorState)> fn) { m_onStateChanged = fn; }
   void onInstructionExecuted(std::function<void(Registers, uint16_t)> fn) { m_onInstructionExecuted = fn; }
   void dumpState() const;
+  void reset() {
+    setState_(EmulatorState::Halted);
+    m_reg = {};
+    isp = ProgramStart;
+    m_delay = make_unique<EmulatorTimer>();
+    m_sound = make_unique<EmulatorTimer>();
+    m_keypad = {};
+    m_display->clear();
+    m_stack = stack<uint16_t>{};
+  }
 
  private:
+  std::thread m_runnerThread;
   bool evalMathOp(uint16_t opcode);
   bool evalMiscOp(uint16_t opcode);
   void setState_(EmulatorState state) { 
@@ -251,6 +263,8 @@ class Chip8Emulator {
 
   /** program counter */
   uint16_t isp{ProgramStart};
+
+  // cycles
   uint64_t m_clockSpeed{500};
 
   Chip8Display* m_display;

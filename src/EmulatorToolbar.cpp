@@ -1,13 +1,14 @@
 #include "App.hpp"
 #include "EmulatorWindow.hpp"
-#include <QToolButton>
-#include <QStyle>
+#include "VCenterBox.hpp"
 #include <QComboBox>
-#include <QtCore/qnamespace.h>
+#include <QStyle>
+#include <QToolButton>
 
-EmulatorToolbar::EmulatorToolbar(AppContext &context, QtEmulatorWindow *parent) : QToolBar(parent), m_context{context} {
+EmulatorToolbar::EmulatorToolbar(AppContext &context, QtEmulatorWindow *parent)
+    : QToolBar(parent), m_context{context} {
   m_stateLabel = new QLabel(this);
-  m_stateLabel->setContentsMargins(8,8,8,8);
+  m_stateLabel->setContentsMargins(8, 0, 8, 0);
   addWidget(m_stateLabel);
 
   addSeparator();
@@ -15,7 +16,8 @@ EmulatorToolbar::EmulatorToolbar(AppContext &context, QtEmulatorWindow *parent) 
   debugger->setCheckable(true);
   debugger->setChecked(context.debuggerVisible);
 
-  connect(debugger, &QAction::toggled, parent, &QtEmulatorWindow::setDebuggerVisibility);
+  connect(debugger, &QAction::toggled, parent,
+          &QtEmulatorWindow::setDebuggerVisibility);
 
   addSeparator();
 
@@ -26,11 +28,13 @@ EmulatorToolbar::EmulatorToolbar(AppContext &context, QtEmulatorWindow *parent) 
   auto *clockspeedMenu = new QComboBox(this);
   clockspeedMenu->addItems({"500", "750", "1000", "2000"});
   clockspeedMenu->setCurrentIndex(0);
-  addWidget(clockspeedMenu);
-  
-  connect(clockspeedMenu, &QComboBox::currentTextChanged, [parent](const QString& hz){
-    parent->setClockSpeed(hz.toULong());
-      });
+  clockspeedMenu->setToolTip(
+      "Adjust this if moving things with the keypad feels too slow/fast.\nThis "
+      "doesn't have an effect on timers (they will keep running at 60Hz).");
+  addWidget(new VCenterBox(this, clockspeedMenu));
+
+  connect(clockspeedMenu, &QComboBox::currentTextChanged,
+          [parent](const QString &hz) { parent->setClockSpeed(hz.toULong()); });
 
   renderStateLabel_();
 }

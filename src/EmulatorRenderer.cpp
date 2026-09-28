@@ -2,7 +2,6 @@
 #include "EmulatorWindow.hpp"
 #include <QKeyEvent>
 #include <QPainter>
-#include <iostream>
 
 static constexpr size_t _x(size_t idx) {
   return idx % chip8::CHIP8_DISPLAY_WIDTH;

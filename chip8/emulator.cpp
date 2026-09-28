@@ -447,10 +447,15 @@ bool Chip8Emulator::exec() {
 
 EmulatorState Chip8Emulator::run() {
   setState_(EmulatorState::Running);
+  auto time = chrono::steady_clock::now();
+  auto nextCycle = time;
   while (m_state != EmulatorState::Halted) {
+    time = chrono::steady_clock::now();
+    if(time < nextCycle) continue;
     if (m_state == EmulatorState::WaitingInput) continue;
     exec();
-    this_thread::sleep_for(chrono::microseconds(1'000'000 / m_clockSpeed));
+    nextCycle += chrono::microseconds(1'000'000 / m_clockSpeed);
+    this_thread::yield();
   }
   return m_state;
 }
@@ -463,6 +468,10 @@ void Chip8Emulator::continueWithKey(uint8_t key) {
 
 void Chip8Emulator::setClockSpeed(uint64_t hz) {
   m_clockSpeed = hz;
+}
+
+Chip8Emulator::~Chip8Emulator() {
+  if(m_runnerThread.joinable()) m_runnerThread.join();
 }
 
 }  // namespace chip8
