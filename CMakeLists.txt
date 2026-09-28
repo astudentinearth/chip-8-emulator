@@ -9,28 +9,20 @@ set(CMAKE_AUTOUIC ON)
 project(chip8 VERSION 1.0 LANGUAGES CXX)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
-option(CHIP8_USE_VENDORED_SDL "Build bundled SDL" ON)
-  if(CHIP8_USE_VENDORED_SDL)
-      add_subdirectory(vendor/SDL EXCLUDE_FROM_ALL)
-  else()
-      find_package(SDL3 CONFIG REQUIRED)
-  endif()
-
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
 add_library(chip8 STATIC chip8/chip8.cpp chip8/emulator.cpp chip8/util.cpp)
 add_executable(chip8-emulator 
   src/main.cpp 
-  src/Window.cpp 
   src/App.cpp 
   src/EmulatorRenderer.cpp 
   src/EmulatorWindow.cpp
   src/EmulatorToolbar.cpp
   src/EmulatorSource.cpp
   src/EmulatorDebugger.cpp
+  src/VCenterBox.cpp
 )
 target_include_directories(chip8 PUBLIC include/)
-target_link_libraries(chip8-emulator PRIVATE chip8 SDL3::SDL3 Qt6::Widgets)
+target_link_libraries(chip8-emulator PRIVATE chip8 Qt6::Widgets)
 

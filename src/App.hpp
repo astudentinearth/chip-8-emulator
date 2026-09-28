@@ -2,11 +2,9 @@
 #pragma once
 #include "Color.hpp"
 #include "chip8.hpp"
-#include <SDL3/SDL.h>
 #include <future>
 #include <memory>
 #include <string>
-
 
 struct AppContext {
     std::string filename;
@@ -20,7 +18,6 @@ struct AppContext {
     bool debuggerVisible{true};
 };
 
-void runSDLApp(AppContext& context);
 int runQt6App(AppContext& context);
 
 

@@ -1,5 +1,3 @@
-#include <SDL3/SDL.h>
-
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -61,8 +59,6 @@ int main(int argc, const char **argv) {
       theme = ColorScheme::Default;
   }
 
-  cout << "Creating SDL window" << endl;
-
   auto context = AppContext{.filename = filename,
                             .colorscheme = theme,
                             .emulator = emulator,
@@ -76,7 +72,6 @@ int main(int argc, const char **argv) {
     emulator->run();
   });
   auto result = runQt6App(context);
-  cout << "Running program" << endl;
   t.join();
   return result;
 }
