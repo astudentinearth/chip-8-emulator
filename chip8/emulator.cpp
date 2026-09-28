@@ -263,7 +263,6 @@ bool Chip8Emulator::evalMathOp(uint16_t opcode) {
 bool Chip8Emulator::evalMiscOp(uint16_t opcode) {
   switch (opcode & op::MiscOpTypeMask) {
     case op::GetKey: {
-      cout << "waiting for input" << endl;
       m_reg.k = op::LeftReg(opcode);
       setState_(EmulatorState::WaitingInput);
       return false;
@@ -448,14 +447,14 @@ bool Chip8Emulator::exec() {
 EmulatorState Chip8Emulator::run() {
   setState_(EmulatorState::Running);
   auto time = chrono::steady_clock::now();
-  auto nextCycle = time;
+  auto const clockInterval =  chrono::microseconds(1'000'000 / m_clockSpeed);
+  auto nextTime = time + clockInterval;
   while (m_state != EmulatorState::Halted) {
-    time = chrono::steady_clock::now();
-    if(time < nextCycle) continue;
     if (m_state == EmulatorState::WaitingInput) continue;
     exec();
-    nextCycle += chrono::microseconds(1'000'000 / m_clockSpeed);
-    this_thread::yield();
+
+    std::this_thread::sleep_until(nextTime);
+    nextTime += clockInterval;
   }
   return m_state;
 }

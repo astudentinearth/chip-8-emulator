@@ -269,7 +269,7 @@ class Chip8Emulator {
 
   Chip8Display* m_display;
   Keypad m_keypad{};
-  EmulatorState m_state{EmulatorState::Halted};
+  std::atomic<EmulatorState> m_state{EmulatorState::Halted};
   unique_ptr<EmulatorTimer> m_delay;
   unique_ptr<EmulatorTimer> m_sound;
 };
