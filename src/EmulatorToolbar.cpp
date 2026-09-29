@@ -1,15 +1,20 @@
 #include "App.hpp"
 #include "EmulatorWindow.hpp"
 #include "VCenterBox.hpp"
+#include "chip8.hpp"
 #include <QComboBox>
 #include <QStyle>
 #include <QToolButton>
 
-EmulatorToolbar::EmulatorToolbar(AppContext &context, QtEmulatorWindow *parent)
+EmulatorToolbar::EmulatorToolbar(AppContext &context, QtEmulatorWindow *parent,
+                                 EmulatorSource *source)
     : QToolBar(parent), m_context{context} {
-  m_stateLabel = new QLabel(this);
-  m_stateLabel->setContentsMargins(8, 0, 8, 0);
-  addWidget(m_stateLabel);
+
+  setToolButtonStyle(Qt::ToolButtonStyle::ToolButtonTextBesideIcon);
+  setIconSize(QSize(16, 16));
+  m_source = source;
+  auto *togglePause = addAction("Pause");
+  togglePause->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::MediaPlaybackPause));
 
   addSeparator();
   auto *debugger = addAction("Debugger");
@@ -36,11 +41,27 @@ EmulatorToolbar::EmulatorToolbar(AppContext &context, QtEmulatorWindow *parent)
   connect(clockspeedMenu, &QComboBox::currentTextChanged,
           [parent](const QString &hz) { parent->setClockSpeed(hz.toULong()); });
 
-  renderStateLabel_();
-}
+  connect(
+      source, &EmulatorSource::emulatorStateChanged, this,
+      [togglePause, source](chip8::EmulatorState st) {
+        if (st != chip8::EmulatorState::Halted) {
+          togglePause->setIcon(
+              QIcon::fromTheme(QIcon::ThemeIcon::MediaPlaybackPause));
+          togglePause->setText("Pause");
+          disconnect(togglePause, &QAction::triggered, source,
+                     &EmulatorSource::runEmulator);
+          connect(togglePause, &QAction::triggered, source,
+                  &EmulatorSource::pauseEmulator);
+        } else {
+          togglePause->setIcon(
+              QIcon::fromTheme(QIcon::ThemeIcon::MediaPlaybackStart));
+          togglePause->setText("Run");
+          disconnect(togglePause, &QAction::triggered, source,
+                     &EmulatorSource::pauseEmulator);
+          connect(togglePause, &QAction::triggered, source,
+                  &EmulatorSource::runEmulator);
+        }
+      },
+      Qt::QueuedConnection);
 
-void EmulatorToolbar::renderStateLabel_() {
-  std::ostringstream stream{};
-  stream << m_state;
-  m_stateLabel->setText(QString::fromStdString(stream.str()));
 }

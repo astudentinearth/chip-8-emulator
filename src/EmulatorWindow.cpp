@@ -9,7 +9,7 @@ QtEmulatorWindow::QtEmulatorWindow(QWidget *parent, AppContext &context)
   setMinimumSize(DefaultWidth / 2, DefaultHeight / 2);
 
   m_emulator = new EmulatorSource(context, this);
-  m_toolbar = new EmulatorToolbar(context, this);
+  m_toolbar = new EmulatorToolbar(context, this, m_emulator);
   m_debugger = new EmulatorDebugger(this);
 
   m_renderer = new EmulatorRenderer(this, chip8::Framebuffer{});
@@ -25,8 +25,6 @@ QtEmulatorWindow::QtEmulatorWindow(QWidget *parent, AppContext &context)
   connect(m_emulator, &EmulatorSource::emulatorRedraw, m_renderer,
           &EmulatorRenderer::setFrame, Qt::QueuedConnection);
 
-  connect(m_emulator, &EmulatorSource::emulatorStateChanged, m_toolbar,
-          &EmulatorToolbar::setEmulatorState, Qt::QueuedConnection);
 
   connect(m_emulator, &EmulatorSource::registersChanged, m_debugger,
           &EmulatorDebugger::setRegisters, Qt::QueuedConnection);

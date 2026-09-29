@@ -34,6 +34,8 @@ public slots:
   }
 
   void setKeyReleased(uint8_t key) { m_context.emulator->setKey(key, false); }
+  void pauseEmulator() { m_context.emulator->hlt(); }
+  void runEmulator() { m_context.emulator->runAsync(); }
 
 private:
   AppContext &m_context;
@@ -67,19 +69,11 @@ class EmulatorToolbar : public QToolBar {
   Q_OBJECT
 
 public:
-  explicit EmulatorToolbar(AppContext &context, QtEmulatorWindow *parent);
-
-public slots:
-  void setEmulatorState(chip8::EmulatorState st) {
-    m_state = st;
-    renderStateLabel_();
-  }
+  explicit EmulatorToolbar(AppContext &context, QtEmulatorWindow *parent, EmulatorSource *source);
 
 private:
-  chip8::EmulatorState m_state{chip8::EmulatorState::Halted};
-  void renderStateLabel_();
-  QLabel *m_stateLabel;
   AppContext &m_context;
+  EmulatorSource *m_source;
 };
 
 class EmulatorRenderer : public QWidget {

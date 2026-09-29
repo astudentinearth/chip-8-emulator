@@ -223,7 +223,10 @@ public:
   thread &runAsync();
   void continueWithKey(uint8_t key);
   EmulatorState getState() const { return m_state; }
-  void hlt() { m_state = EmulatorState::Halted; }
+  void hlt() { 
+    setState_(EmulatorState::Halted); 
+    if(m_runnerThread.joinable()) m_runnerThread.join();
+  }
   Registers getReg() const { return m_reg; }
   Keypad getKeypad() const { return m_keypad; }
   const uint8_t getDelayTimer() const { return m_delay->getVal(); }
