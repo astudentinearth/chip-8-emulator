@@ -37,9 +37,7 @@ int main(int argc, const char **argv) {
   auto buffer = make_unique<char[]>(size);
   programFile.read(buffer.get(), size);
 
-  const auto display = Chip8Display::create([](const Framebuffer &buf) {});
-  const shared_ptr<Chip8Emulator> emulator =
-      std::move(Chip8Emulator::create(display.get()));
+  auto emulator = Chip8Emulator::create();
   if (emulator->loadProgram(buffer.get(), size)) {
     cout << "Loaded program successfully." << endl;
   } else {
@@ -61,17 +59,12 @@ int main(int argc, const char **argv) {
 
   auto context = AppContext{.filename = filename,
                             .colorscheme = theme,
-                            .emulator = emulator,
-                            .framebuffer = display->getFramebuffer(),
+                            .emulator = std::move(emulator),
                             .window_ready = promise<void>{},
                             .argc = argc,
                             .argv = argv
   };
-  thread t([&emulator, ready = std::move(context.window_ready.get_future())]() {
-    ready.wait();
-    emulator->run();
-  });
+
   auto result = runQt6App(context);
-  t.join();
   return result;
 }

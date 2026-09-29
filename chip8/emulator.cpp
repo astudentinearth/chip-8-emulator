@@ -1,12 +1,11 @@
 
-#include <thread>
-#include <unistd.h>
 #include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <mutex>
 #include <ostream>
+#include <thread>
 
 #include "chip8.hpp"
 #include "util.hpp"
@@ -14,27 +13,29 @@
 namespace chip8 {
 Chip8Display::Chip8Display(onDrawFn onDraw) { m_onDraw = onDraw; }
 
-std::ostream& operator<<(std::ostream& os, EmulatorState state) {
+std::ostream &operator<<(std::ostream &os, EmulatorState state) {
   switch (state) {
-    case EmulatorState::Halted:
-      os << "Halted";
-      break;
-    case EmulatorState::Running:
-      os << "Running";
-      break;
-    case EmulatorState::WaitingInput:
-      os << "Waiting input";
-      break;
+  case EmulatorState::Halted:
+    os << "Halted";
+    break;
+  case EmulatorState::Running:
+    os << "Running";
+    break;
+  case EmulatorState::WaitingInput:
+    os << "Waiting input";
+    break;
   };
   return os;
 }
 
-unique_ptr<Chip8Emulator> Chip8Emulator::create(Chip8Display* display) {
-  auto emulator = make_unique<Chip8Emulator>();
-  emulator->m_display = display;
-  emulator->m_delay = EmulatorTimer::create();
-  emulator->m_sound = EmulatorTimer::create();
-  return emulator;
+Chip8Emulator::Chip8Emulator() {
+  m_delay = EmulatorTimer::create();
+  m_sound = EmulatorTimer::create();
+  m_display = make_unique<Chip8Display>();
+}
+
+unique_ptr<Chip8Emulator> Chip8Emulator::create() {
+  return make_unique<Chip8Emulator>();
 }
 void Chip8Display::clear() {
   Framebuffer buf{};
@@ -46,38 +47,49 @@ void Chip8Display::redraw() const { m_onDraw(m_framebuffer); }
 bool Chip8Display::drawByte(int x, int y, uint8_t byte) {
   bool unset = false;
   for (int _x = 0; _x < 8; _x++) {
-    if (((byte << _x) & 0x80) == 0) continue;
+    if (((byte << _x) & 0x80) == 0)
+      continue;
     const auto idx = x + _x + (y * CHIP8_DISPLAY_WIDTH);
-    if(idx >= m_framebuffer.size()) continue;
-    auto& px = m_framebuffer[idx];
-    if (px) unset = true;
+    if (idx >= m_framebuffer.size())
+      continue;
+    auto &px = m_framebuffer[idx];
+    if (px)
+      unset = true;
     px ^= 1;
   }
   return unset;
 }
 
-unique_ptr<EmulatorTimer> EmulatorTimer::create() { return make_unique<EmulatorTimer>(); }
+unique_ptr<EmulatorTimer> EmulatorTimer::create() {
+  return make_unique<EmulatorTimer>();
+}
 uint8_t EmulatorTimer::getVal() const { return m_value; }
 void EmulatorTimer::set(uint8_t val) {
-    lock_guard<mutex> guard(mtx_value);
-    m_value = val;
-    if(m_running) return;
-    thread t([this](){loop();});
-    t.detach();
-} 
-
-void EmulatorTimer::loop() {
-    m_running = true;
-    while(m_running) {
-        lock_guard<mutex> guard(mtx_value);
-        m_value--;
-        if(m_value == 0) { m_running = false; break; }
-        this_thread::sleep_for(chrono::milliseconds(static_cast<long>(1000 / m_hz)));
-    }
+  lock_guard<mutex> guard(mtx_value);
+  m_value = val;
+  if (m_running)
+    return;
+  thread t([this]() { loop(); });
+  t.detach();
 }
 
-bool Chip8Emulator::loadProgram(const char* program, size_t size) {
-  if (size > MaxProgramSize) return false;
+void EmulatorTimer::loop() {
+  m_running = true;
+  while (m_running) {
+    lock_guard<mutex> guard(mtx_value);
+    m_value--;
+    if (m_value == 0) {
+      m_running = false;
+      break;
+    }
+    this_thread::sleep_for(
+        chrono::milliseconds(static_cast<long>(1000 / m_hz)));
+  }
+}
+
+bool Chip8Emulator::loadProgram(const char *program, size_t size) {
+  if (size > MaxProgramSize)
+    return false;
   memcpy(&memory[ProgramStart], program, size);
   memcpy(&memory[0], fontset, CHIP8_FONT_SET_SIZE);
   m_size = size;
@@ -98,45 +110,44 @@ uint16_t Chip8Emulator::fetchNext() {
 
 uint16_t Chip8Emulator::getIsp() const { return isp; }
 
-template <typename T>
-static void dumpreg_(const char* reg, T value) {
+template <typename T> static void dumpreg_(const char *reg, T value) {
   printf("%s: 0x%X\n", reg, value);
 }
 
-uint8_t& Registers::operator[](uint16_t idx) {
+uint8_t &Registers::operator[](uint16_t idx) {
   switch (idx) {
-    case 0:
-      return v0;
-    case 1:
-      return v1;
-    case 2:
-      return v2;
-    case 3:
-      return v3;
-    case 4:
-      return v4;
-    case 5:
-      return v5;
-    case 6:
-      return v6;
-    case 7:
-      return v7;
-    case 8:
-      return v8;
-    case 9:
-      return v9;
-    case 10:
-      return va;
-    case 11:
-      return vb;
-    case 12:
-      return vc;
-    case 13:
-      return vd;
-    case 14:
-      return ve;
-    case 15:
-      return vf;
+  case 0:
+    return v0;
+  case 1:
+    return v1;
+  case 2:
+    return v2;
+  case 3:
+    return v3;
+  case 4:
+    return v4;
+  case 5:
+    return v5;
+  case 6:
+    return v6;
+  case 7:
+    return v7;
+  case 8:
+    return v8;
+  case 9:
+    return v9;
+  case 10:
+    return va;
+  case 11:
+    return vb;
+  case 12:
+    return vc;
+  case 13:
+    return vd;
+  case 14:
+    return ve;
+  case 15:
+    return vf;
   }
   return v0;
 }
@@ -183,132 +194,133 @@ void Chip8Emulator::call(uint16_t addr) {
 }
 
 void Chip8Emulator::setKey(uint8_t key, bool state) {
-  if (key > 15) return;
+  if (key > 15)
+    return;
   m_keypad[key] = state;
 }
 
 bool Chip8Emulator::evalMathOp(uint16_t opcode) {
   switch (op::BinOpType(opcode)) {
-    case op::Assignment: {
-      m_reg[op::LeftReg(opcode)] = m_reg[op::RightReg(opcode)];
-      break;
-    }
+  case op::Assignment: {
+    m_reg[op::LeftReg(opcode)] = m_reg[op::RightReg(opcode)];
+    break;
+  }
 
-    case op::Or: {
-      m_reg[op::LeftReg(opcode)] |= m_reg[op::RightReg(opcode)];
-      break;
-    }
+  case op::Or: {
+    m_reg[op::LeftReg(opcode)] |= m_reg[op::RightReg(opcode)];
+    break;
+  }
 
-    case op::And: {
-      m_reg[op::LeftReg(opcode)] &= m_reg[op::RightReg(opcode)];
-      break;
-    }
+  case op::And: {
+    m_reg[op::LeftReg(opcode)] &= m_reg[op::RightReg(opcode)];
+    break;
+  }
 
-    case op::Xor: {
-      m_reg[op::LeftReg(opcode)] ^= m_reg[op::RightReg(opcode)];
-      break;
-    }
+  case op::Xor: {
+    m_reg[op::LeftReg(opcode)] ^= m_reg[op::RightReg(opcode)];
+    break;
+  }
 
-    case op::Add: {
-      auto& left = m_reg[op::LeftReg(opcode)];
-      auto original = left;
-      left += m_reg[op::RightReg(opcode)];
-      if (left < original)
-        m_reg.vf = 1;
-      else
-        m_reg.vf = 0;
-      break;
-    }
+  case op::Add: {
+    auto &left = m_reg[op::LeftReg(opcode)];
+    auto original = left;
+    left += m_reg[op::RightReg(opcode)];
+    if (left < original)
+      m_reg.vf = 1;
+    else
+      m_reg.vf = 0;
+    break;
+  }
 
-    case op::Sub: {
-      auto& left = m_reg[op::LeftReg(opcode)];
-      auto original = left;
-      left -= m_reg[op::RightReg(opcode)];
-      if (left > original)
-        m_reg.vf = 0;
-      else
-        m_reg.vf = 1;
-      break;
-    }
+  case op::Sub: {
+    auto &left = m_reg[op::LeftReg(opcode)];
+    auto original = left;
+    left -= m_reg[op::RightReg(opcode)];
+    if (left > original)
+      m_reg.vf = 0;
+    else
+      m_reg.vf = 1;
+    break;
+  }
 
-    case op::LeftShift: {
-      auto vy = m_reg[op::RightReg(opcode)];
-      auto vx = vy << 1;
-      m_reg[op::LeftReg(opcode)] = vx;
-      m_reg.vf = (vy >> 7) & 0x1;
-      break;
-    }
+  case op::LeftShift: {
+    auto vy = m_reg[op::RightReg(opcode)];
+    auto vx = vy << 1;
+    m_reg[op::LeftReg(opcode)] = vx;
+    m_reg.vf = (vy >> 7) & 0x1;
+    break;
+  }
 
-    case op::RightShift: {
-      auto vy = m_reg[op::RightReg(opcode)];
-      auto vf = 0x1 & vy;
-      m_reg[op::LeftReg(opcode)] = vy >> 1;
-      m_reg.vf = vf;
-      break;
-    }
+  case op::RightShift: {
+    auto vy = m_reg[op::RightReg(opcode)];
+    auto vf = 0x1 & vy;
+    m_reg[op::LeftReg(opcode)] = vy >> 1;
+    m_reg.vf = vf;
+    break;
+  }
 
-    case op::Difference: {
-      auto& vy = m_reg[op::RightReg(opcode)];
-      auto& vx = m_reg[op::LeftReg(opcode)];
-      auto result = vy - vx;
-      auto vf = vy >= vx ? 1 : 0;
-      vx = vy - vx;
-      m_reg.vf = vf;
-      break;
-    }
+  case op::Difference: {
+    auto &vy = m_reg[op::RightReg(opcode)];
+    auto &vx = m_reg[op::LeftReg(opcode)];
+    auto result = vy - vx;
+    auto vf = vy >= vx ? 1 : 0;
+    vx = vy - vx;
+    m_reg.vf = vf;
+    break;
+  }
   }
   return false;
 }
 
 bool Chip8Emulator::evalMiscOp(uint16_t opcode) {
   switch (opcode & op::MiscOpTypeMask) {
-    case op::GetKey: {
-      m_reg.k = op::LeftReg(opcode);
-      setState_(EmulatorState::WaitingInput);
-      return false;
+  case op::GetKey: {
+    m_reg.k = op::LeftReg(opcode);
+    setState_(EmulatorState::WaitingInput);
+    return false;
+  }
+
+  case op::GetDelayTimer:
+    m_reg[op::LeftReg(opcode)] = m_delay->getVal();
+    return false;
+
+  case op::SetDelayTimer:
+    m_delay->set(m_reg[op::LeftReg(opcode)]);
+    return false;
+
+  case op::SetSoundTimer:
+    m_sound->set(m_reg[op::LeftReg(opcode)]);
+    return false;
+
+  case op::AddVxToI:
+    m_reg.i += m_reg[op::LeftReg(opcode)];
+    return false;
+
+  case op::SetCharSprite:
+    m_reg.i = CharGlyphOffset(m_reg[op::LeftReg(opcode)]);
+    return false;
+
+  case op::BCD: {
+    auto num = m_reg[op::LeftReg(opcode)];
+    memory[m_reg.i] = num / 100;
+    memory[m_reg.i + 1] = (num / 10) % 10;
+    memory[m_reg.i + 2] = num % 10;
+    return false;
+  }
+
+  case op::RegDump: {
+    for (uint8_t vx = 0; vx <= op::LeftReg(opcode); vx++) {
+      memory[m_reg.i++] = m_reg[vx];
     }
+    return false;
+  }
 
-    case op::GetDelayTimer:
-      m_reg[op::LeftReg(opcode)] = m_delay->getVal();
-      return false;
-
-    case op::SetDelayTimer:
-      m_delay->set(m_reg[op::LeftReg(opcode)]);
-      return false;
-
-    case op::SetSoundTimer:
-      m_sound->set(m_reg[op::LeftReg(opcode)]);
-      return false;
-
-    case op::AddVxToI:
-      m_reg.i += m_reg[op::LeftReg(opcode)];
-      return false;
-
-    case op::SetCharSprite:
-      m_reg.i = CharGlyphOffset(m_reg[op::LeftReg(opcode)]);
-      return false;
-
-    case op::BCD: {
-      auto num = m_reg[op::LeftReg(opcode)];
-      memory[m_reg.i] = num / 100;
-      memory[m_reg.i + 1] = (num / 10) % 10;
-      memory[m_reg.i + 2] = num % 10;
-      return false;
+  case op::RegLoad: {
+    for (uint8_t vx = 0; vx <= op::LeftReg(opcode); vx++) {
+      m_reg[vx] = memory[m_reg.i++];
     }
-
-    case op::RegDump: {
-      for (uint8_t vx = 0; vx <= op::LeftReg(opcode); vx++) {
-        memory[m_reg.i++] = m_reg[vx];
-      }
-      return false;
-    }
-
-    case op::RegLoad: {
-      for (uint8_t vx = 0; vx <= op::LeftReg(opcode); vx++) {
-        m_reg[vx] = memory[m_reg.i++];
-      }
-      return false;
-    }
+    return false;
+  }
   }
   return false;
 }
@@ -319,127 +331,128 @@ bool Chip8Emulator::eval(uint16_t opcode) {
     return false;
   }
   switch (opcode & op::OpClassMask) {
-    case 0x0000: {
-      if (opcode == op::Return) {
-        ret();
-        return true;
-      }
-
-      if (opcode == op::ClearDisplay) {
-        m_display->clear();
-        return false;
-      }
-      break;
-    }
-
-    case op::Jump: {
-      jmp(op::Address(opcode));
+  case 0x0000: {
+    if (opcode == op::Return) {
+      ret();
       return true;
     }
 
-    case op::Call: {
-      call(op::Address(opcode));
+    if (opcode == op::ClearDisplay) {
+      m_display->clear();
+      return false;
+    }
+    break;
+  }
+
+  case op::Jump: {
+    jmp(op::Address(opcode));
+    return true;
+  }
+
+  case op::Call: {
+    call(op::Address(opcode));
+    return true;
+  }
+
+  case op::SkipIfEqual: {
+    if ((m_reg[op::CondReg(opcode)]) == (op::CondVal(opcode))) {
+      isp += 4;
       return true;
     }
+    return false;
+  }
 
-    case op::SkipIfEqual: {
-      if ((m_reg[op::CondReg(opcode)]) == (op::CondVal(opcode))) {
-        isp += 4;
-        return true;
-      }
-      return false;
-    }
-
-    case op::SkipIfNotEqual: {
-      if ((m_reg[op::CondReg(opcode)]) != (op::CondVal(opcode))) {
-        isp += 4;
-        return true;
-      }
-      return false;
-    }
-
-    case op::SkipIfRegEqual: {
-      auto reg1 = m_reg[op::LeftReg(opcode)];
-      auto reg2 = m_reg[op::RightReg(opcode)];
-      if (reg1 == reg2) {
-        isp += 4;
-        return true;
-      }
-      return false;
-    }
-
-    case op::ConstSet: {
-      m_reg[op::ConstSetReg(opcode)] = op::ConstSetVal(opcode);
-      return false;
-    }
-
-    case op::ConstAdd: {
-      m_reg[op::ConstAddReg(opcode)] += op::ConstAddVal(opcode);
-      return false;
-    }
-
-    case op::Math:
-      return evalMathOp(opcode);
-
-    case op::SkipIfRegNotEqual: {
-      if (m_reg[op::LeftReg(opcode)] != m_reg[op::RightReg(opcode)]) {
-        isp += 4;
-        return true;
-      }
-      return false;
-    }
-
-    case op::SetAddressReg: {
-      m_reg.i = op::Address(opcode);
-      return false;
-    }
-
-    case op::OffsetJump: {
-      jmp(m_reg.v0 + (op::Address(opcode)));
+  case op::SkipIfNotEqual: {
+    if ((m_reg[op::CondReg(opcode)]) != (op::CondVal(opcode))) {
+      isp += 4;
       return true;
     }
+    return false;
+  }
 
-    case op::Random: {
-      m_reg[op::LeftReg(opcode)] = random_byte() & op::ConstSetVal(opcode);
-      return false;
+  case op::SkipIfRegEqual: {
+    auto reg1 = m_reg[op::LeftReg(opcode)];
+    auto reg2 = m_reg[op::RightReg(opcode)];
+    if (reg1 == reg2) {
+      isp += 4;
+      return true;
     }
+    return false;
+  }
 
-    case op::Draw: {
-      auto x = m_reg[op::LeftReg(opcode)];
-      auto y = m_reg[op::RightReg(opcode)];
-      auto h = op::DrawHeight(opcode);
-      uint8_t* start = &memory[m_reg.i];
-      bool unset = false;
-      for (uint16_t i = 0; i < h; i++) {
-        unset |= m_display->drawByte(x, y + i, start[i]);
-      }
-      m_reg.vf = unset ? 1 : 0;
-      m_display->redraw();
-      return false;
+  case op::ConstSet: {
+    m_reg[op::ConstSetReg(opcode)] = op::ConstSetVal(opcode);
+    return false;
+  }
+
+  case op::ConstAdd: {
+    m_reg[op::ConstAddReg(opcode)] += op::ConstAddVal(opcode);
+    return false;
+  }
+
+  case op::Math:
+    return evalMathOp(opcode);
+
+  case op::SkipIfRegNotEqual: {
+    if (m_reg[op::LeftReg(opcode)] != m_reg[op::RightReg(opcode)]) {
+      isp += 4;
+      return true;
     }
+    return false;
+  }
 
-    case op::KeyCond: {
-      auto key = m_reg[op::LeftReg(opcode)] & 0xF;
-      if (((opcode & 0x00FF) == op::KeyCondEqMask) && m_keypad[key]) {
-        isp += 4;
-        return true;
-      }
-      if (((opcode & 0x00FF) == op::KeyCondNotEqMask) && !m_keypad[key]) {
-        isp += 4;
-        return true;
-      }
-      return false;
+  case op::SetAddressReg: {
+    m_reg.i = op::Address(opcode);
+    return false;
+  }
+
+  case op::OffsetJump: {
+    jmp(m_reg.v0 + (op::Address(opcode)));
+    return true;
+  }
+
+  case op::Random: {
+    m_reg[op::LeftReg(opcode)] = random_byte() & op::ConstSetVal(opcode);
+    return false;
+  }
+
+  case op::Draw: {
+    auto x = m_reg[op::LeftReg(opcode)];
+    auto y = m_reg[op::RightReg(opcode)];
+    auto h = op::DrawHeight(opcode);
+    uint8_t *start = &memory[m_reg.i];
+    bool unset = false;
+    for (uint16_t i = 0; i < h; i++) {
+      unset |= m_display->drawByte(x, y + i, start[i]);
     }
+    m_reg.vf = unset ? 1 : 0;
+    m_display->redraw();
+    return false;
+  }
 
-    case op::Misc:
-      return evalMiscOp(opcode);
+  case op::KeyCond: {
+    auto key = m_reg[op::LeftReg(opcode)] & 0xF;
+    if (((opcode & 0x00FF) == op::KeyCondEqMask) && m_keypad[key]) {
+      isp += 4;
+      return true;
+    }
+    if (((opcode & 0x00FF) == op::KeyCondNotEqMask) && !m_keypad[key]) {
+      isp += 4;
+      return true;
+    }
+    return false;
+  }
+
+  case op::Misc:
+    return evalMiscOp(opcode);
   }
   return false;
 }
 
 bool Chip8Emulator::exec() {
   bool ispSet = eval(fetch(isp));
-  if (!ispSet) isp += 2;
+  if (!ispSet)
+    isp += 2;
   m_onInstructionExecuted(m_reg, isp);
   return ispSet;
 }
@@ -447,10 +460,11 @@ bool Chip8Emulator::exec() {
 EmulatorState Chip8Emulator::run() {
   setState_(EmulatorState::Running);
   auto time = chrono::steady_clock::now();
-  auto const clockInterval =  chrono::microseconds(1'000'000 / m_clockSpeed);
+  auto const clockInterval = chrono::microseconds(1'000'000 / m_clockSpeed);
   auto nextTime = time + clockInterval;
   while (m_state != EmulatorState::Halted) {
-    if (m_state == EmulatorState::WaitingInput) continue;
+    if (m_state == EmulatorState::WaitingInput)
+      continue;
     exec();
 
     std::this_thread::sleep_until(nextTime);
@@ -459,18 +473,25 @@ EmulatorState Chip8Emulator::run() {
   return m_state;
 }
 
+thread &Chip8Emulator::runAsync() {
+  // we are already executing
+  if (m_runnerThread.joinable())
+    return m_runnerThread;
+  m_runnerThread = thread([this]() { this->run(); });
+  return m_runnerThread;
+}
+
 void Chip8Emulator::continueWithKey(uint8_t key) {
   m_reg[m_reg.k] = key;
   setState_(EmulatorState::Running);
 }
 
-
-void Chip8Emulator::setClockSpeed(uint64_t hz) {
-  m_clockSpeed = hz;
-}
+void Chip8Emulator::setClockSpeed(uint64_t hz) { m_clockSpeed = hz; }
 
 Chip8Emulator::~Chip8Emulator() {
-  if(m_runnerThread.joinable()) m_runnerThread.join();
+  if (m_runnerThread.joinable())
+    m_runnerThread.join();
+
 }
 
-}  // namespace chip8
+} // namespace chip8

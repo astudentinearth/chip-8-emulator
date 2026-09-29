@@ -9,8 +9,7 @@
 struct AppContext {
     std::string filename;
     ColorScheme colorscheme = ColorScheme::Default;
-    std::shared_ptr<chip8::Chip8Emulator> emulator;
-    chip8::Framebuffer& framebuffer;
+    std::unique_ptr<chip8::Chip8Emulator> emulator;
     std::promise<void> window_ready;
     int argc;
     const char** argv;

@@ -2,7 +2,7 @@
 
 EmulatorSource::EmulatorSource(AppContext &context, QObject *parent)
     : QObject(parent), m_context{context} {
-  auto em = context.emulator;
+  auto em = context.emulator.get();
   em->onStateChanged([this](auto st) { emit emulatorStateChanged(st); });
   em->display()->onDraw([this](auto fb) { emit emulatorRedraw(fb); });
   em->onInstructionExecuted([this](auto reg, auto isp) {
@@ -12,7 +12,7 @@ EmulatorSource::EmulatorSource(AppContext &context, QObject *parent)
 };
 
 EmulatorSource::~EmulatorSource() {
-  auto emulator = m_context.emulator;
+  auto emulator = m_context.emulator.get();
 
   // cleanup listeners
   emulator->onStateChanged([](chip8::EmulatorState st) {});

@@ -13,27 +13,27 @@ using namespace std;
 namespace chip8 {
 void hello();
 
-constexpr int CHIP8_DISPLAY_WIDTH = 64;  
+constexpr int CHIP8_DISPLAY_WIDTH = 64;
 constexpr int CHIP8_DISPLAY_HEIGHT = 32;
-constexpr int CHIP8_FONT_SET_SIZE = 80;  // bytes
+constexpr int CHIP8_FONT_SET_SIZE = 80; // bytes
 
 const uint8_t fontset[CHIP8_FONT_SET_SIZE]{
-    0xf0, 0x90, 0x90, 0x90, 0xf0,  // 0
-    0x20, 0x60, 0x20, 0x20, 0x70,  // 1
-    0xf0, 0x10, 0xf0, 0x80, 0xf0,  // 2
-    0xf0, 0x10, 0xf0, 0x10, 0xf0,  // 3
-    0x90, 0x90, 0xf0, 0x10, 0x10,  // 4
-    0xf0, 0x80, 0xf0, 0x10, 0xf0,  // 5
-    0xf0, 0x80, 0xf0, 0x90, 0xf0,  // 6
-    0xf0, 0x10, 0x20, 0x40, 0x40,  // 7
-    0xf0, 0x90, 0xf0, 0x90, 0xf0,  // 8
-    0xf0, 0x90, 0xf0, 0x10, 0xf0,  // 9
-    0xf0, 0x90, 0xf0, 0x90, 0x90,  // A
-    0xe0, 0x90, 0xe0, 0x90, 0xe0,  // B
-    0xf0, 0x80, 0x80, 0x80, 0xf0,  // C
-    0xe0, 0x90, 0x90, 0x90, 0xe0,  // D
-    0xf0, 0x80, 0xf0, 0x80, 0xf0,  // E
-    0xf0, 0x80, 0xf0, 0x80, 0x80   // F
+    0xf0, 0x90, 0x90, 0x90, 0xf0, // 0
+    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+    0xf0, 0x10, 0xf0, 0x80, 0xf0, // 2
+    0xf0, 0x10, 0xf0, 0x10, 0xf0, // 3
+    0x90, 0x90, 0xf0, 0x10, 0x10, // 4
+    0xf0, 0x80, 0xf0, 0x10, 0xf0, // 5
+    0xf0, 0x80, 0xf0, 0x90, 0xf0, // 6
+    0xf0, 0x10, 0x20, 0x40, 0x40, // 7
+    0xf0, 0x90, 0xf0, 0x90, 0xf0, // 8
+    0xf0, 0x90, 0xf0, 0x10, 0xf0, // 9
+    0xf0, 0x90, 0xf0, 0x90, 0x90, // A
+    0xe0, 0x90, 0xe0, 0x90, 0xe0, // B
+    0xf0, 0x80, 0x80, 0x80, 0xf0, // C
+    0xe0, 0x90, 0x90, 0x90, 0xe0, // D
+    0xf0, 0x80, 0xf0, 0x80, 0xf0, // E
+    0xf0, 0x80, 0xf0, 0x80, 0x80  // F
 };
 
 constexpr uint8_t CharGlyphOffset(uint8_t ch) { return ch * 5; }
@@ -42,7 +42,7 @@ using Framebuffer = array<uint8_t, CHIP8_DISPLAY_WIDTH * CHIP8_DISPLAY_HEIGHT>;
 using onDrawFn = std::function<void(Framebuffer)>;
 
 class Chip8Display {
- public:
+public:
   explicit Chip8Display() = default;
   explicit Chip8Display(onDrawFn onDraw);
   static unique_ptr<Chip8Display> create() {
@@ -55,25 +55,26 @@ class Chip8Display {
   void clear();
   void onDraw(onDrawFn onDraw) { m_onDraw = onDraw; }
   bool drawByte(int x, int y, uint8_t byte);
-  Framebuffer& getFramebuffer() { return m_framebuffer; };
+  Framebuffer &getFramebuffer() { return m_framebuffer; };
 
- private:
+private:
   Framebuffer m_framebuffer{};
   onDrawFn m_onDraw = [](Framebuffer _) {};
 };
 
 class EmulatorTimer {
-  public:
-      explicit EmulatorTimer() = default;
-      static unique_ptr<EmulatorTimer> create();
-      uint8_t getVal() const;
-      void set(uint8_t val);
-  private:
-      void loop();
-      bool m_running{false};
-      float m_hz{60.0};
-      mutex mtx_value;
-      uint8_t m_value;
+public:
+  explicit EmulatorTimer() = default;
+  static unique_ptr<EmulatorTimer> create();
+  uint8_t getVal() const;
+  void set(uint8_t val);
+
+private:
+  void loop();
+  bool m_running{false};
+  float m_hz{60.0};
+  mutex mtx_value;
+  uint8_t m_value;
 };
 
 struct Registers {
@@ -107,7 +108,7 @@ struct Registers {
 
   /** address register, last 4 bits unused */
   uint16_t i;
-  uint8_t& operator[](uint16_t idx);
+  uint8_t &operator[](uint16_t idx);
 };
 
 using Keypad = std::array<bool, 16>;
@@ -175,23 +176,20 @@ constexpr uint16_t MiscOpTypeMask = 0x00FF;
 constexpr uint16_t KeyCondEqMask = 0x009E;
 constexpr uint16_t KeyCondNotEqMask = 0x00A1;
 constexpr bool IsHcf(uint16_t opcode, uint16_t isp) {
-    if((opcode & Jump) && Address(opcode) == isp) return true;
-    return false;
+  if ((opcode & Jump) && Address(opcode) == isp)
+    return true;
+  return false;
 }
 
-}  // namespace op
+} // namespace op
 
-enum class EmulatorState {
-    Running,
-    WaitingInput,
-    Halted
-};
+enum class EmulatorState { Running, WaitingInput, Halted };
 
-std::ostream& operator <<(std::ostream& os, EmulatorState state);
+std::ostream &operator<<(std::ostream &os, EmulatorState state);
 
 class Chip8Emulator {
- public:
-  explicit Chip8Emulator() = default;
+public:
+  explicit Chip8Emulator();
   ~Chip8Emulator();
   enum : int {
     MemorySize = 4096,
@@ -199,9 +197,9 @@ class Chip8Emulator {
     MaxProgramSize = ProgramStart - MemorySize
   };
 
-  static unique_ptr<Chip8Emulator> create(Chip8Display* display);
+  static unique_ptr<Chip8Emulator> create();
 
-  bool loadProgram(const char* program, size_t size);
+  bool loadProgram(const char *program, size_t size);
   uint16_t fetch(const uint16_t addr) const;
   uint16_t fetchNext();
   uint16_t getIsp() const;
@@ -219,6 +217,10 @@ class Chip8Emulator {
   bool exec();
 
   EmulatorState run();
+
+  /** Starts execution in a worker thread. If the emulator is already running, a new thread won't be created.
+   * @return a reference to the worker thread, so you can join it later. */
+  thread &runAsync();
   void continueWithKey(uint8_t key);
   EmulatorState getState() const { return m_state; }
   void hlt() { m_state = EmulatorState::Halted; }
@@ -226,9 +228,13 @@ class Chip8Emulator {
   Keypad getKeypad() const { return m_keypad; }
   const uint8_t getDelayTimer() const { return m_delay->getVal(); }
   const uint8_t getSoundTimer() const { return m_sound->getVal(); }
-  Chip8Display *display() { return m_display; }
-  void onStateChanged(std::function<void(EmulatorState)> fn) { m_onStateChanged = fn; }
-  void onInstructionExecuted(std::function<void(Registers, uint16_t)> fn) { m_onInstructionExecuted = fn; }
+  Chip8Display *display() { return m_display.get(); }
+  void onStateChanged(std::function<void(EmulatorState)> fn) {
+    m_onStateChanged = fn;
+  }
+  void onInstructionExecuted(std::function<void(Registers, uint16_t)> fn) {
+    m_onInstructionExecuted = fn;
+  }
   void dumpState() const;
   void reset() {
     setState_(EmulatorState::Halted);
@@ -241,11 +247,11 @@ class Chip8Emulator {
     m_stack = stack<uint16_t>{};
   }
 
- private:
+private:
   std::thread m_runnerThread;
   bool evalMathOp(uint16_t opcode);
   bool evalMiscOp(uint16_t opcode);
-  void setState_(EmulatorState state) { 
+  void setState_(EmulatorState state) {
     m_state = state;
     m_onStateChanged(state);
   };
@@ -267,10 +273,10 @@ class Chip8Emulator {
   // cycles
   uint64_t m_clockSpeed{500};
 
-  Chip8Display* m_display;
+  unique_ptr<Chip8Display> m_display;
   Keypad m_keypad{};
   std::atomic<EmulatorState> m_state{EmulatorState::Halted};
   unique_ptr<EmulatorTimer> m_delay;
   unique_ptr<EmulatorTimer> m_sound;
 };
-}  // namespace chip8
+} // namespace chip8

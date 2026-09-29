@@ -11,7 +11,7 @@ int runQt6App(AppContext &context) {
   QApplication app(context.argc, const_cast<char**>(context.argv));
   QtEmulatorWindow window(nullptr, context);
   window.show();
-  context.window_ready.set_value();
+  context.emulator->runAsync();
   return app.exec();
 }
 
