@@ -2,6 +2,26 @@
 #include "EmulatorWindow.hpp"
 #include <QKeyEvent>
 #include <QPainter>
+#include <unordered_map>
+
+static const auto keymap = std::unordered_map<int, uint8_t>{
+  {Qt::Key_1, 1},
+  {Qt::Key_2, 2},
+  {Qt::Key_3, 3},
+  {Qt::Key_4, 0xC},
+  {Qt::Key_Q, 4},
+  {Qt::Key_W, 5},
+  {Qt::Key_E, 6},
+  {Qt::Key_R, 0xD},
+  {Qt::Key_A, 7},
+  {Qt::Key_S, 8},
+  {Qt::Key_D, 9},
+  {Qt::Key_F, 0xE},
+  {Qt::Key_Z, 0xA},
+  {Qt::Key_X, 0},
+  {Qt::Key_C, 0xB},
+  {Qt::Key_V, 0xF},
+};
 
 static constexpr size_t _x(size_t idx) {
   return idx % chip8::CHIP8_DISPLAY_WIDTH;
@@ -44,8 +64,11 @@ void EmulatorRenderer::paintEvent(QPaintEvent *event) {
 }
 
 static constexpr uint8_t KEY_IGNORE = 99;
-static constexpr uint8_t infer_key(int keycode) {
+static uint8_t infer_key(int keycode) {
   uint8_t key = KEY_IGNORE;
+  if(keymap.contains(keycode)) {
+    return keymap.at(keycode);
+  }
   if (keycode >= Qt::Key_0 && keycode <= Qt::Key_9) {
     key = (keycode - Qt::Key_0) & 0xFF;
   }
