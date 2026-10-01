@@ -25,7 +25,7 @@
               gnumake
               qt6.qtbase
             ]
-            ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux (with pkgs; [ qt6.wayland ]);
+            ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux (with pkgs; [ qt6.qtwayland ]);
 
           env = {
           };

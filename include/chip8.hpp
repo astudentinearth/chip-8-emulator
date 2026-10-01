@@ -7,6 +7,7 @@
 #include <mutex>
 #include <stack>
 #include <thread>
+#include <functional>
 
 using namespace std;
 
