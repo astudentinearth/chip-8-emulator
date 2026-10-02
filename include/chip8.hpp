@@ -69,6 +69,9 @@ public:
   static unique_ptr<EmulatorTimer> create();
   uint8_t getVal() const;
   void set(uint8_t val);
+  void onTick(std::function<void()> callback) {
+    m_onTick = callback;
+  };
 
 private:
   void loop();
@@ -76,6 +79,7 @@ private:
   float m_hz{60.0};
   mutex mtx_value;
   uint8_t m_value;
+  std::function<void()> m_onTick = [](){};
 };
 
 struct Registers {
@@ -250,6 +254,7 @@ public:
     m_display->clear();
     m_stack = stack<uint16_t>{};
   }
+  void onBeep(std::function<void()> callback) {m_beep = callback;}
 
 private:
   std::thread m_runnerThread;
@@ -282,5 +287,6 @@ private:
   std::atomic<EmulatorState> m_state{EmulatorState::Halted};
   unique_ptr<EmulatorTimer> m_delay;
   unique_ptr<EmulatorTimer> m_sound;
+  std::function<void()> m_beep = [](){};
 };
 } // namespace chip8

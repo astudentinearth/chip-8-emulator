@@ -24,10 +24,12 @@
               bear
               gnumake
               qt6.qtbase
+              qt6.qtmultimedia
             ]
             ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux (with pkgs; [ qt6.qtwayland ]);
 
-          env = {
+          env = pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.pipewire ];
           };
         };
       });

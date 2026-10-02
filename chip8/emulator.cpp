@@ -32,6 +32,7 @@ Chip8Emulator::Chip8Emulator() {
   m_delay = EmulatorTimer::create();
   m_sound = EmulatorTimer::create();
   m_display = make_unique<Chip8Display>();
+  m_sound->onTick([this](){m_beep();});
 }
 
 unique_ptr<Chip8Emulator> Chip8Emulator::create() {
@@ -80,6 +81,7 @@ void EmulatorTimer::loop() {
     m_value--;
     if (m_value == 0) {
       m_running = false;
+      m_onTick();
       break;
     }
     this_thread::sleep_for(

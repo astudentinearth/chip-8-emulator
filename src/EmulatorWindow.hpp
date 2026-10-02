@@ -8,6 +8,7 @@
 #include <QWidget>
 #include <QPushButton>
 #include <QtWidgets/qwidget.h>
+#include "Buzzer.hpp"
 
 class QtEmulatorWindow;
 
@@ -24,6 +25,7 @@ signals:
   void registersChanged(chip8::Registers registers);
   void ispChanged(uint16_t isp);
   void clockSpeedChanged(uint64_t clockSpeed);
+  void beep();
 
 public slots:
   void setKeyPressed(uint8_t key) {
@@ -39,6 +41,7 @@ public slots:
 
 private:
   AppContext &m_context;
+  Buzzer *m_buzzer;
 };
 
 class EmulatorDebugger : public QWidget {
