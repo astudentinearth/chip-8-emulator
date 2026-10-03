@@ -199,7 +199,7 @@ public:
   enum : int {
     MemorySize = 4096,
     ProgramStart = 0x200,
-    MaxProgramSize = ProgramStart - MemorySize
+    MaxProgramSize = MemorySize - ProgramStart
   };
 
   static unique_ptr<Chip8Emulator> create();

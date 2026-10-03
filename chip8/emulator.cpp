@@ -455,6 +455,7 @@ bool Chip8Emulator::exec() {
   bool ispSet = eval(fetch(isp));
   if (!ispSet)
     isp += 2;
+
   m_onInstructionExecuted(m_reg, isp);
   return ispSet;
 }
